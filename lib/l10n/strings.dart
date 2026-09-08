@@ -260,12 +260,7 @@ const _dict = <String, List<String>>{
     '選択したテキストを保存しますか?',
     '要保存所选文本吗?',
   ],
-  'save_as_highlight': [
-    '형광펜으로 저장',
-    'Save as Highlight',
-    'ハイライトとして保存',
-    '保存为高亮',
-  ],
+  'save_as_highlight': ['형광펜으로 저장', 'Save as Highlight', 'ハイライトとして保存', '保存为高亮'],
 
   // Saved items screen
   'no_bookmarks': [
@@ -323,7 +318,9 @@ const _dict = <String, List<String>>{
   'coming_soon': ['준비 중', 'Coming soon', '準備中', '敬请期待'],
 
   // Onboarding
-  'onboarding_title': ['ebk 사용법', 'How to use ebk', 'ebkの使い方', 'ebk使用指南'],
+  'onb_next': ['다음', 'Next', '次へ', '下一步'],
+  'onb_show_again': ['다음에 다시 보기', 'Show again next time', '次回また表示', '下次再显示'],
+  'onb_never_show': ['다신 안 보기', "Don't show again", '二度と表示しない', '不再显示'],
   'onb_add_title': [
     '오른쪽 아래 + 버튼',
     'Bottom-right + button',
@@ -398,19 +395,9 @@ const _dict = <String, List<String>>{
 
   // Reading settings dialog
   'reading_settings_title': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
-  'reset_defaults': [
-    '기본값으로',
-    'Reset to defaults',
-    'デフォルトに戻す',
-    '恢复默认设置',
-  ],
+  'reset_defaults': ['기본값으로', 'Reset to defaults', 'デフォルトに戻す', '恢复默认设置'],
   'display_mode': ['화면 모드', 'Display Mode', '表示モード', '显示模式'],
-  'reading_progress_section': [
-    '읽기 진행률',
-    'Reading Progress',
-    '読書の進捗',
-    '阅读进度',
-  ],
+  'reading_progress_section': ['읽기 진행률', 'Reading Progress', '読書の進捗', '阅读进度'],
   'show_progress_title': ['진행 페이지 표시', 'Show progress', '進捗を表示', '显示进度'],
   'show_progress_desc': [
     '리더 화면 상단에 현재 위치 / 전체 분량을 표시합니다',
@@ -444,30 +431,10 @@ const _dict = <String, List<String>>{
   'font_pretendard': ['프리텐다드', 'Pretendard', 'Pretendard', 'Pretendard'],
   'font_maruBuri': ['마루부리', 'Maru Buri', 'マルブリ', 'Maru Buri'],
   'font_notoSerifKr': ['노토 세리프', 'Noto Serif', 'Noto Serif', 'Noto Serif'],
-  'font_nanumGothic': [
-    '나눔고딕',
-    'Nanum Gothic',
-    'ナヌムゴシック',
-    'Nanum Gothic',
-  ],
-  'font_nanumMyeongjo': [
-    '나눔명조',
-    'Nanum Myeongjo',
-    'ナヌム明朝',
-    'Nanum Myeongjo',
-  ],
-  'font_gowunBatang': [
-    '고운바탕',
-    'Gowun Batang',
-    'コウンバタン',
-    'Gowun Batang',
-  ],
-  'font_gowunDodum': [
-    '고운돋움',
-    'Gowun Dodum',
-    'コウンドドゥム',
-    'Gowun Dodum',
-  ],
+  'font_nanumGothic': ['나눔고딕', 'Nanum Gothic', 'ナヌムゴシック', 'Nanum Gothic'],
+  'font_nanumMyeongjo': ['나눔명조', 'Nanum Myeongjo', 'ナヌム明朝', 'Nanum Myeongjo'],
+  'font_gowunBatang': ['고운바탕', 'Gowun Batang', 'コウンバタン', 'Gowun Batang'],
+  'font_gowunDodum': ['고운돋움', 'Gowun Dodum', 'コウンドドゥム', 'Gowun Dodum'],
   'font_ibmPlexSansKr': [
     'IBM 플렉스 산스',
     'IBM Plex Sans',
@@ -494,25 +461,10 @@ const _dict = <String, List<String>>{
     '我的书房(默认)',
   ],
   'sort_recentlyRead': ['최근 읽은 순', 'Recently Read', '最近読んだ順', '最近阅读'],
-  'sort_nameAsc': [
-    '이름순 (가나다·ABC)',
-    'Name (A-Z)',
-    '名前順(A-Z)',
-    '名称(A-Z)',
-  ],
+  'sort_nameAsc': ['이름순 (가나다·ABC)', 'Name (A-Z)', '名前順(A-Z)', '名称(A-Z)'],
   'sort_nameDesc': ['이름순 (역순)', 'Name (Z-A)', '名前順(Z-A)', '名称(Z-A)'],
-  'sort_addedNewest': [
-    '최신 등록순',
-    'Newest Added',
-    '追加日が新しい順',
-    '最新添加',
-  ],
-  'sort_addedOldest': [
-    '오래된 순',
-    'Oldest Added',
-    '追加日が古い順',
-    '最早添加',
-  ],
+  'sort_addedNewest': ['최신 등록순', 'Newest Added', '追加日が新しい順', '最新添加'],
+  'sort_addedOldest': ['오래된 순', 'Oldest Added', '追加日が古い順', '最早添加'],
 };
 
 String fontLabel(ReadingFont f) => tr('font_${f.name}');

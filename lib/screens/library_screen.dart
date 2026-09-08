@@ -22,7 +22,7 @@ import '../utils/zip_book_extractor.dart';
 import '../widgets/coffee_dialog.dart';
 import '../widgets/file_source_dialog.dart';
 import '../widgets/glass.dart';
-import '../widgets/onboarding_dialog.dart';
+import '../widgets/onboarding_overlay.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'epub_viewer_screen.dart';
 import 'music_score_viewer_screen.dart';
@@ -69,13 +69,67 @@ class _LibraryScreenState extends State<LibraryScreen> {
   // or failed, since we have no console access on the reporter's device.
   final ValueNotifier<String> _debugStatus = ValueNotifier('');
 
+  // Anchors the onboarding overlay's spotlight to each button's real
+  // on-screen position.
+  final _addKey = GlobalKey();
+  final _searchKey = GlobalKey();
+  final _sortKey = GlobalKey();
+  final _trashKey = GlobalKey();
+  final _settingsKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _books = LibraryStore.loadAll();
     _folders = FolderStore.loadAll();
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => maybeShowOnboarding(context),
+      (_) => maybeShowOnboardingOverlay(context, [
+        OnboardingStep(
+          targetKey: _addKey,
+          icon: Icons.add_circle_outline,
+          titleKey: 'onb_add_title',
+          descKey: 'onb_add_desc',
+        ),
+        const OnboardingStep(
+          icon: Icons.folder_outlined,
+          titleKey: 'onb_folder_title',
+          descKey: 'onb_folder_desc',
+        ),
+        OnboardingStep(
+          targetKey: _searchKey,
+          icon: Icons.search,
+          titleKey: 'onb_search_title',
+          descKey: 'onb_search_desc',
+        ),
+        OnboardingStep(
+          targetKey: _sortKey,
+          icon: Icons.sort,
+          titleKey: 'onb_sort_title',
+          descKey: 'onb_sort_desc',
+        ),
+        OnboardingStep(
+          targetKey: _trashKey,
+          icon: Icons.delete_outline,
+          titleKey: 'onb_trash_title',
+          descKey: 'onb_trash_desc',
+        ),
+        OnboardingStep(
+          targetKey: _settingsKey,
+          icon: Icons.tune,
+          titleKey: 'onb_settings_title',
+          descKey: 'onb_settings_desc',
+        ),
+        const OnboardingStep(
+          icon: Icons.border_color_outlined,
+          titleKey: 'onb_highlight_title',
+          descKey: 'onb_highlight_desc',
+        ),
+        const OnboardingStep(
+          icon: Icons.bookmark_add_outlined,
+          titleKey: 'onb_bookmark_title',
+          descKey: 'onb_bookmark_desc',
+        ),
+      ]),
     );
   }
 
@@ -119,9 +173,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         // that, so a real selection was being reported as a cancellation —
         // exactly the "opens the native fine, picks a file, then acts like
         // nothing was chosen" symptom reported on iPhone Chrome.
-        webOptions: const FilePickerWebOptions(
-          cancelUploadOnWindowBlur: false,
-        ),
+        webOptions: const FilePickerWebOptions(cancelUploadOnWindowBlur: false),
       );
       if (file == null) {
         _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
@@ -166,8 +218,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     } catch (e) {
       if (!mounted) return;
       _debugStatus.value = '(실패: $e)';
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('save_failed', {'error': '$e'}))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
+      );
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
@@ -809,11 +862,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (narrow) {
       return [
         IconButton(
+          key: _searchKey,
           tooltip: tr('search'),
           icon: const Icon(Icons.search),
           onPressed: () => setState(() => _searchActive = true),
         ),
         PopupMenuButton<String>(
+          key: _sortKey,
           onSelected: (v) {
             if (v == 'sort') _pickSort();
             if (v == 'trash') _toggleSelectionMode();
@@ -832,21 +887,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     return [
       IconButton(
+        key: _searchKey,
         tooltip: tr('search'),
         icon: const Icon(Icons.search),
         onPressed: () => setState(() => _searchActive = true),
       ),
       IconButton(
+        key: _sortKey,
         tooltip: tr('sort'),
         icon: const Icon(Icons.sort),
         onPressed: _pickSort,
       ),
       IconButton(
+        key: _trashKey,
         tooltip: tr('select_delete'),
         icon: const Icon(Icons.delete_outline),
         onPressed: _toggleSelectionMode,
       ),
       IconButton(
+        key: _settingsKey,
         tooltip: tr('reading_settings'),
         icon: const Icon(Icons.tune),
         onPressed: () => showReadingSettingsSheet(context),
@@ -1067,6 +1126,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     const CoffeeButton(),
                     const SizedBox(width: 12),
                     FloatingActionButton(
+                      key: _addKey,
                       tooltip: tr('add'),
                       onPressed: _isPicking ? null : _showAddMenu,
                       child: _isPicking
