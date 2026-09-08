@@ -17,6 +17,7 @@ import '../utils/docx_text_extractor.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/musicxml_extractor.dart';
 import '../utils/rtf_text_extractor.dart';
+import '../utils/zip_book_extractor.dart';
 import '../widgets/coffee_dialog.dart';
 import '../widgets/file_source_dialog.dart';
 import '../widgets/glass.dart';
@@ -107,6 +108,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           'rtf',
           'musicxml',
           'mxl',
+          'zip',
         ],
         // Default true: file_picker arms a 500ms auto-cancel timer the
         // moment the browser window blurs (which happens as soon as iOS's
@@ -124,9 +126,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
         return;
       }
-      _debugStatus.value = '2) 선택됨: ${file.name} — 형식 확인 중...';
+      _debugStatus.value = '2) 선택됨: ${file.name} — 읽는 중...';
 
-      final format = Book.formatFromExtension(file.extension);
+      final bytes = await file.readAsBytes().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('reading the picked file'),
+      );
+
+      var name = file.name;
+      var format = Book.formatFromExtension(file.extension);
+      var resolvedBytes = bytes;
+      if (format == null && file.extension?.toLowerCase() == 'zip') {
+        _debugStatus.value = '2.5) ZIP 안에서 지원 형식 찾는 중...';
+        final found = findSupportedFileInZip(bytes);
+        if (found != null) {
+          name = found.name;
+          format = found.format;
+          resolvedBytes = found.bytes;
+        }
+      }
+
       if (format == null) {
         if (!mounted) return;
         _debugStatus.value = '(실패: 지원하지 않는 형식)';
@@ -135,13 +154,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return;
       }
 
-      _debugStatus.value = '3) 파일 내용 읽는 중...';
-      final bytes = await file.readAsBytes().timeout(
-        const Duration(seconds: 20),
-        onTimeout: () => throw TimeoutException('reading the picked file'),
+      _debugStatus.value = '4) ${resolvedBytes.length}바이트 — 저장소에 저장 중...';
+      await _addBook(
+        name: name,
+        format: format,
+        bytes: resolvedBytes,
+        open: true,
       );
-      _debugStatus.value = '4) ${bytes.length}바이트 읽음 — 저장소에 저장 중...';
-      await _addBook(name: file.name, format: format, bytes: bytes, open: true);
       _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
     } catch (e) {
       if (!mounted) return;
