@@ -847,9 +847,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
     setState(() => _sort = chosen);
   }
 
-  List<Widget> _buildActions(bool narrow) {
+  List<Widget> _buildActions(
+    bool narrow, {
+    List<Folder> visibleFolders = const [],
+    List<Book> visibleBooks = const [],
+  }) {
     if (_selectionMode) {
+      final allSelected =
+          visibleFolders.every((f) => _selectedFolderIds.contains(f.id)) &&
+          visibleBooks.every((b) => _selectedBookIds.contains(b.id)) &&
+          (visibleFolders.isNotEmpty || visibleBooks.isNotEmpty);
       return [
+        IconButton(
+          tooltip: allSelected ? tr('deselect_all') : tr('select_all'),
+          icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
+          onPressed: () => setState(() {
+            if (allSelected) {
+              _selectedFolderIds.clear();
+              _selectedBookIds.clear();
+            } else {
+              _selectedFolderIds
+                ..clear()
+                ..addAll(visibleFolders.map((f) => f.id));
+              _selectedBookIds
+                ..clear()
+                ..addAll(visibleBooks.map((b) => b.id));
+            }
+          }),
+        ),
         IconButton(
           tooltip: tr('select_delete'),
           icon: const Icon(Icons.delete_outline),
@@ -989,7 +1014,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     folder?.name ?? appName.label,
                     overflow: TextOverflow.ellipsis,
                   ),
-            actions: _buildActions(narrow),
+            actions: _buildActions(
+              narrow,
+              visibleFolders: visibleFolders,
+              visibleBooks: visibleBooks,
+            ),
           ),
           body: isEmpty
               ? Center(

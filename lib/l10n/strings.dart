@@ -159,6 +159,8 @@ const _dict = <String, List<String>>{
     '此浏览器中没有可用的声音。',
   ],
   'cancel_selection': ['선택 취소', 'Cancel selection', '選択解除', '取消选择'],
+  'select_all': ['전체 선택', 'Select all', 'すべて選択', '全选'],
+  'deselect_all': ['전체 선택 해제', 'Deselect all', 'すべて解除', '取消全选'],
   'selected_count': ['{n}개 선택됨', '{n} selected', '{n}件選択中', '已选择{n}项'],
   'no_search_results': [
     '검색 결과가 없습니다.',
