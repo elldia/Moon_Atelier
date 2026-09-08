@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 
+import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
 /// Thin wrapper around the browser's built-in Web Speech API
@@ -7,11 +8,38 @@ import 'package:web/web.dart' as web;
 /// piece of text at a time; call [speak] again (or [stop]) to interrupt
 /// whatever's currently playing.
 class TtsReader {
-  TtsReader._();
+  TtsReader._() {
+    // Chrome (unlike Firefox/Safari) loads its voice list asynchronously —
+    // getVoices() can return [] on the very first call. onvoiceschanged
+    // fires once the real list is ready; re-broadcast it via a
+    // ValueNotifier so UI (the voice picker) can react instead of racing it.
+    web.window.speechSynthesis.onvoiceschanged = (web.Event _) {
+      voicesChanged.value = !voicesChanged.value;
+    }.toJS;
+  }
   static final instance = TtsReader._();
+
+  /// Flips every time the browser's voice list (re)loads — not the voices
+  /// themselves, just a change pulse for listeners to re-call [voices].
+  final voicesChanged = ValueNotifier<bool>(false);
 
   bool _speaking = false;
   bool get isSpeaking => _speaking;
+
+  List<web.SpeechSynthesisVoice> voices() =>
+      web.window.speechSynthesis.getVoices().toDart;
+
+  /// Looks up a previously-picked voice by its [voiceURI] (as persisted in
+  /// [ReadingSettings.ttsVoiceUri]). Returns null (meaning "browser default
+  /// for the utterance's lang") if [voiceURI] is null or no longer matches
+  /// any currently-loaded voice.
+  web.SpeechSynthesisVoice? findVoice(String? voiceURI) {
+    if (voiceURI == null) return null;
+    for (final v in voices()) {
+      if (v.voiceURI == voiceURI) return v;
+    }
+    return null;
+  }
 
   /// Speaks [text] aloud. [onDone] fires once the utterance finishes
   /// naturally (not via [stop]); [onError] fires if the browser's speech
@@ -20,6 +48,7 @@ class TtsReader {
     String text, {
     String lang = 'ko-KR',
     double rate = 1.0,
+    web.SpeechSynthesisVoice? voice,
     required void Function() onDone,
     void Function(String error)? onError,
   }) {
@@ -31,6 +60,7 @@ class TtsReader {
     final utterance = web.SpeechSynthesisUtterance(text)
       ..lang = lang
       ..rate = rate;
+    if (voice != null) utterance.voice = voice;
     _speaking = true;
     utterance.onend = (web.Event _) {
       _speaking = false;

@@ -142,6 +142,16 @@ const _dict = <String, List<String>>{
   'reading_settings': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
   'tts_start': ['음성으로 듣기', 'Read aloud', '音声で聞く', '朗读'],
   'tts_stop': ['듣기 중지', 'Stop reading', '再生を停止', '停止朗读'],
+  'tts_settings': ['음성 설정', 'Voice settings', '音声設定', '朗读设置'],
+  'tts_voice': ['목소리', 'Voice', '音声', '声音'],
+  'tts_voice_system_default': ['시스템 기본', 'System default', 'システム標準', '系统默认'],
+  'tts_speed': ['읽기 속도', 'Reading speed', '読み上げ速度', '朗读速度'],
+  'tts_no_voices': [
+    '이 브라우저에서 사용 가능한 목소리를 찾을 수 없습니다.',
+    'No voices available in this browser.',
+    'このブラウザで利用可能な音声が見つかりません。',
+    '此浏览器中没有可用的声音。',
+  ],
   'cancel_selection': ['선택 취소', 'Cancel selection', '選択解除', '取消选择'],
   'selected_count': ['{n}개 선택됨', '{n} selected', '{n}件選択中', '已选择{n}项'],
   'no_search_results': [

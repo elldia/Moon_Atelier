@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
+import '../utils/tts_reader.dart';
 import 'glass.dart';
 
 /// Opens the shared reading-preferences dialog. Safe to call from the
@@ -25,6 +26,24 @@ class _ReadingSettingsDialog extends StatefulWidget {
 
 class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   late ReadingSettings _draft = ReadingSettingsController.instance.value;
+
+  @override
+  void initState() {
+    super.initState();
+    // Chrome loads its voice list asynchronously, so it may still be empty
+    // the moment this dialog opens — rebuild once the real list arrives.
+    TtsReader.instance.voicesChanged.addListener(_onVoicesChanged);
+  }
+
+  void _onVoicesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    TtsReader.instance.voicesChanged.removeListener(_onVoicesChanged);
+    super.dispose();
+  }
 
   void _set(ReadingSettings Function(ReadingSettings current) updater) {
     setState(() => _draft = updater(_draft));
@@ -182,6 +201,21 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                         valueLabel: _draft.paragraphIndent.round().toString(),
                         onChanged: (v) =>
                             _set((s) => s.copyWith(paragraphIndent: v)),
+                      ),
+                      const SizedBox(height: 20),
+                      _SectionLabel(tr('tts_settings')),
+                      _TtsVoiceSelector(
+                        value: _draft.ttsVoiceUri,
+                        onChanged: (v) => _set(
+                          (s) => v == null
+                              ? s.copyWith(clearTtsVoice: true)
+                              : s.copyWith(ttsVoiceUri: v),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _TtsSpeedSelector(
+                        value: _draft.ttsRate,
+                        onChanged: (v) => _set((s) => s.copyWith(ttsRate: v)),
                       ),
                     ],
                   ),
@@ -384,6 +418,110 @@ class _WeightSelector extends StatelessWidget {
             selected: current == weight,
             onSelected: (_) => onChanged(weight.value),
           ),
+      ],
+    );
+  }
+}
+
+class _TtsVoiceSelector extends StatelessWidget {
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  const _TtsVoiceSelector({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final voices = TtsReader.instance.voices()
+      // Korean voices first (this is a Korean-first reading app), then by
+      // language so other locales still group together.
+      ..sort((a, b) {
+        final aKo = a.lang.toLowerCase().startsWith('ko') ? 0 : 1;
+        final bKo = b.lang.toLowerCase().startsWith('ko') ? 0 : 1;
+        if (aKo != bKo) return aKo - bKo;
+        return a.lang.compareTo(b.lang);
+      });
+
+    if (voices.isEmpty) {
+      return Text(
+        tr('tts_no_voices'),
+        style: Theme.of(context).textTheme.bodySmall
+            ?.copyWith(color: Theme.of(context).hintColor),
+      );
+    }
+
+    // The stored voiceURI might not match any currently-loaded voice (a
+    // different browser/device, or the voice list simply hasn't finished
+    // loading yet) — fall back to "system default" display rather than
+    // crashing DropdownButton on an unmatched value.
+    final selected = value != null && voices.any((v) => v.voiceURI == value)
+        ? value
+        : null;
+
+    return SizedBox(
+      width: double.infinity,
+      child: DropdownButtonFormField<String?>(
+        initialValue: selected,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: tr('tts_voice'),
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        items: [
+          DropdownMenuItem(
+            value: null,
+            child: Text(
+              tr('tts_voice_system_default'),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          for (final voice in voices)
+            DropdownMenuItem(
+              value: voice.voiceURI,
+              child: Text(
+                '${voice.name} (${voice.lang})',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+        ],
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _TtsSpeedSelector extends StatelessWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+  const _TtsSpeedSelector({required this.value, required this.onChanged});
+
+  static const _steps = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 64,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(tr('tts_speed')),
+          ),
+        ),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final step in _steps)
+                ChoiceChip(
+                  label: Text('x${step.toStringAsFixed(1)}'),
+                  selected: (value - step).abs() < 0.01,
+                  onSelected: (_) => onChanged(step),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

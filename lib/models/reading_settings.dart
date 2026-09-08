@@ -141,6 +141,8 @@ class ReadingSettings {
   final AppLocale locale;
   final AppBrand appName;
   final bool showFormatIcon;
+  final String? ttsVoiceUri;
+  final double ttsRate;
 
   const ReadingSettings({
     required this.font,
@@ -156,6 +158,8 @@ class ReadingSettings {
     required this.locale,
     required this.appName,
     required this.showFormatIcon,
+    this.ttsVoiceUri,
+    this.ttsRate = 1.0,
   });
 
   static const defaults = ReadingSettings(
@@ -172,6 +176,8 @@ class ReadingSettings {
     locale: AppLocale.ko,
     appName: AppBrand.moonlightLibrary,
     showFormatIcon: true,
+    ttsVoiceUri: null,
+    ttsRate: 1.0,
   );
 
   ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
@@ -201,6 +207,12 @@ class ReadingSettings {
     AppLocale? locale,
     AppBrand? appName,
     bool? showFormatIcon,
+    String? ttsVoiceUri,
+    // copyWith can't tell "leave ttsVoiceUri alone" apart from "clear it
+    // back to the system default" through the nullable param alone (both
+    // look like passing null) — this flag disambiguates the latter.
+    bool clearTtsVoice = false,
+    double? ttsRate,
   }) {
     return ReadingSettings(
       font: font ?? this.font,
@@ -216,6 +228,8 @@ class ReadingSettings {
       locale: locale ?? this.locale,
       appName: appName ?? this.appName,
       showFormatIcon: showFormatIcon ?? this.showFormatIcon,
+      ttsVoiceUri: clearTtsVoice ? null : (ttsVoiceUri ?? this.ttsVoiceUri),
+      ttsRate: ttsRate ?? this.ttsRate,
     );
   }
 
@@ -233,6 +247,8 @@ class ReadingSettings {
     'locale': locale.name,
     'appName': appName.name,
     'showFormatIcon': showFormatIcon,
+    'ttsVoiceUri': ttsVoiceUri,
+    'ttsRate': ttsRate,
   };
 
   factory ReadingSettings.fromMap(Map raw) => ReadingSettings(
@@ -258,5 +274,7 @@ class ReadingSettings {
       orElse: () => AppBrand.moonAtelier,
     ),
     showFormatIcon: raw['showFormatIcon'] as bool? ?? true,
+    ttsVoiceUri: raw['ttsVoiceUri'] as String?,
+    ttsRate: (raw['ttsRate'] as num?)?.toDouble() ?? 1.0,
   );
 }

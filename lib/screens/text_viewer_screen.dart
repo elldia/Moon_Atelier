@@ -322,8 +322,11 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
       _isSpeaking = true;
       _speakingChunkIndex = index;
     });
+    final settings = ReadingSettingsController.instance.value;
     TtsReader.instance.speak(
       _chunks[index],
+      rate: settings.ttsRate,
+      voice: TtsReader.instance.findVoice(settings.ttsVoiceUri),
       onDone: () {
         if (!mounted || !_isSpeaking) return;
         _speakChunk(index + 1);
