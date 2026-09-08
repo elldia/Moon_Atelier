@@ -75,7 +75,14 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   List<(int chunkIndex, int start)> _searchMatches = [];
+  // Matches grouped by chunk index, kept alongside _searchMatches so
+  // _matchStartsInChunk (called once per *visible* chunk on every rebuild,
+  // including plain scrolling) doesn't have to linearly re-scan the whole
+  // match list — which gets expensive once matches run into the thousands.
+  Map<int, List<int>> _searchMatchesByChunk = {};
   int _currentMatchIndex = -1;
+  Timer? _searchDebounce;
+  int _searchToken = 0;
 
   int? _selectedChunkIndex;
   TextSelection? _selection;
@@ -331,36 +338,78 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     );
   }
 
-  List<int> _matchStartsInChunk(int chunkIndex) => [
-    for (final m in _searchMatches)
-      if (m.$1 == chunkIndex) m.$2,
-  ];
+  List<int> _matchStartsInChunk(int chunkIndex) =>
+      _searchMatchesByChunk[chunkIndex] ?? const [];
 
-  void _runSearch(String query) {
-    _searchQuery = query;
+  // Re-scanning the whole book on every keystroke (and doing it all in one
+  // synchronous pass) is what causes the UI to freeze on long books —
+  // debounce the trigger so mid-typing keystrokes don't each start a full
+  // scan, then run the scan itself in small chunk-batches with a yield
+  // between each so the browser can still paint/handle input mid-scan.
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
     if (query.isEmpty) {
+      _searchToken++; // supersede any scan still in flight
       setState(() {
+        _searchQuery = '';
         _searchMatches = [];
+        _searchMatchesByChunk = {};
         _currentMatchIndex = -1;
       });
       return;
     }
-    final lowerQuery = query.toLowerCase();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _runSearch(query),
+    );
+  }
+
+  // Minimum wall-clock gap between progress rebuilds during a scan. A
+  // fixed chunk-count batch (an earlier version of this used one) doesn't
+  // account for how expensive each *rebuild* is — a query that matches on
+  // almost every line can make each intermediate rebuild itself slow (lots
+  // of highlighted spans to lay out), so gating strictly by elapsed time
+  // means a slow rebuild naturally delays the next one instead of piling up.
+  static const _searchUpdateInterval = Duration(milliseconds: 120);
+
+  Future<void> _runSearch(String query) async {
+    final token = ++_searchToken;
+    // `matches` is mutated in place and shared by reference with
+    // `_searchMatches` for the whole scan — re-copying it on every update
+    // (as an earlier version of this did) is O(n²) and defeats the point of
+    // batching for any query with a lot of hits. setState doesn't need a new
+    // list identity to pick up the change, only a rebuild trigger.
     final matches = <(int, int)>[];
+    final matchesByChunk = <int, List<int>>{};
+    setState(() {
+      _searchQuery = query;
+      _searchMatches = matches;
+      _searchMatchesByChunk = matchesByChunk;
+      _currentMatchIndex = -1;
+    });
+    final lowerQuery = query.toLowerCase();
+    var lastUpdate = DateTime.now();
     for (var i = 0; i < _chunks.length; i++) {
+      if (token != _searchToken) return; // a newer search took over
       final lowerChunk = _chunks[i].toLowerCase();
       var start = 0;
       while (true) {
         final idx = lowerChunk.indexOf(lowerQuery, start);
         if (idx < 0) break;
         matches.add((i, idx));
+        (matchesByChunk[i] ??= []).add(idx);
         start = idx + lowerQuery.length;
       }
+      if (DateTime.now().difference(lastUpdate) >= _searchUpdateInterval) {
+        if (!mounted || token != _searchToken) return;
+        setState(() {});
+        await Future.delayed(Duration.zero);
+        if (token != _searchToken) return;
+        lastUpdate = DateTime.now();
+      }
     }
-    setState(() {
-      _searchMatches = matches;
-      _currentMatchIndex = matches.isEmpty ? -1 : 0;
-    });
+    if (!mounted || token != _searchToken) return;
+    setState(() => _currentMatchIndex = matches.isEmpty ? -1 : 0);
     if (_currentMatchIndex >= 0) _jumpToMatch(_currentMatchIndex);
   }
 
@@ -384,10 +433,13 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   }
 
   void _closeSearch() {
+    _searchDebounce?.cancel();
+    _searchToken++; // supersede any scan still in flight
     setState(() {
       _searchActive = false;
       _searchQuery = '';
       _searchMatches = [];
+      _searchMatchesByChunk = {};
       _currentMatchIndex = -1;
       _searchController.clear();
     });
@@ -396,6 +448,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   @override
   void dispose() {
     if (_isSpeaking) TtsReader.instance.stop();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _saveDebounce?.cancel();
     _scrollController.removeListener(_onScroll);
@@ -559,7 +612,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                             hintText: tr('content_search_hint'),
                             border: InputBorder.none,
                           ),
-                          onChanged: _runSearch,
+                          onChanged: _onSearchChanged,
                         )
                       : Text(widget.title, overflow: TextOverflow.ellipsis),
                   leading: IconButton(
