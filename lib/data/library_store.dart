@@ -31,7 +31,10 @@ class LibraryStore {
   /// does, per Apple/WebKit bug reports).
   static Future<void> _reopenBox() async {
     await _box?.close();
-    _box = await Hive.openBox(_boxName);
+    _box = await Hive.openBox(_boxName).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw TimeoutException('reopening the library box'),
+    );
   }
 
   static List<Book> loadAll() {
@@ -49,10 +52,17 @@ class LibraryStore {
   static Future<void> save(Book book) async {
     final map = _toMap(book);
     try {
-      await _b.put(book.id, map).timeout(const Duration(seconds: 12));
+      await _b.put(book.id, map).timeout(
+        const Duration(seconds: 12),
+        onTimeout: () => throw TimeoutException('saving to the library box'),
+      );
     } on TimeoutException {
       await _reopenBox();
-      await _b.put(book.id, map).timeout(const Duration(seconds: 20));
+      await _b.put(book.id, map).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () =>
+            throw TimeoutException('saving to the library box (after retry)'),
+      );
     }
   }
 

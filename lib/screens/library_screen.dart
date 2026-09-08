@@ -111,7 +111,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return;
       }
 
-      final bytes = await file.readAsBytes();
+      final bytes = await file.readAsBytes().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () => throw TimeoutException('reading the picked file'),
+      );
       await _addBook(name: file.name, format: format, bytes: bytes, open: true);
     } catch (e) {
       if (!mounted) return;
