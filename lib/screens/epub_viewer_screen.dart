@@ -9,6 +9,7 @@ import '../data/bookmark_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
+import '../utils/scroll_ui_visibility.dart';
 import '../widgets/glass.dart';
 import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
@@ -43,6 +44,11 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
   late final EpubController _epubController;
   final _progressNotifier = ValueNotifier<double>(0);
   Timer? _saveDebounce;
+
+  bool _uiVisible = true;
+  late final _uiVisibility = ScrollUiVisibility(
+    onChanged: (visible) => setState(() => _uiVisible = visible),
+  );
 
   @override
   void initState() {
@@ -128,9 +134,8 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
     );
     await BookmarkStore.add(bookmark);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('bookmark_added'))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(tr('bookmark_added'))));
   }
 
   Future<void> _openSavedItems() async {
@@ -170,9 +175,7 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
                 builder: (context, progress, _) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Center(
-                      child: Text('${(progress * 100).round()}%'),
-                    ),
+                    child: Center(child: Text('${(progress * 100).round()}%')),
                   );
                 },
               )
@@ -180,113 +183,133 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
 
         return Scaffold(
           key: _scaffoldKey,
-          appBar: glassAppBar(
-            context,
-            leading: IconButton(
-              tooltip: tr('back'),
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            title: EpubViewActualChapter(
-              controller: _epubController,
-              builder: (chapterValue) => Text(
-                chapterValue?.chapter?.Title?.replaceAll('\n', '').trim() ??
-                    widget.title,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            actions: narrow
-                ? [
-                    ?progressChip,
-                    IconButton(
-                      tooltip: tr('toc'),
-                      icon: const Icon(Icons.toc),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          appBar: !_uiVisible
+              ? null
+              : glassAppBar(
+                  context,
+                  leading: IconButton(
+                    tooltip: tr('back'),
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  title: EpubViewActualChapter(
+                    controller: _epubController,
+                    builder: (chapterValue) => Text(
+                      chapterValue?.chapter?.Title
+                              ?.replaceAll('\n', '')
+                              .trim() ??
+                          widget.title,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    PopupMenuButton<String>(
-                      onSelected: (v) {
-                        if (v == 'bookmark') _addBookmark();
-                        if (v == 'saved') _openSavedItems();
-                        if (v == 'settings') showReadingSettingsSheet(context);
-                        if (v == 'home') {
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'bookmark',
-                          child: Text(tr('bookmark_add')),
-                        ),
-                        PopupMenuItem(
-                          value: 'saved',
-                          child: Text(tr('bookmark_list')),
-                        ),
-                        PopupMenuItem(
-                          value: 'settings',
-                          child: Text(tr('reading_settings')),
-                        ),
-                        PopupMenuItem(value: 'home', child: Text(tr('home'))),
-                      ],
-                    ),
-                  ]
-                : [
-                    ?progressChip,
-                    IconButton(
-                      tooltip: tr('toc'),
-                      icon: const Icon(Icons.toc),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
-                    IconButton(
-                      tooltip: tr('bookmark_add'),
-                      icon: const Icon(Icons.bookmark_add_outlined),
-                      onPressed: _addBookmark,
-                    ),
-                    IconButton(
-                      tooltip: tr('bookmark_list'),
-                      icon: const Icon(Icons.bookmarks_outlined),
-                      onPressed: _openSavedItems,
-                    ),
-                    IconButton(
-                      tooltip: tr('reading_settings'),
-                      icon: const Icon(Icons.tune),
-                      onPressed: () => showReadingSettingsSheet(context),
-                    ),
-                    IconButton(
-                      tooltip: tr('home'),
-                      icon: const Icon(Icons.home_outlined),
-                      onPressed: () =>
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst),
-                    ),
-                  ],
-          ),
+                  ),
+                  actions: narrow
+                      ? [
+                          ?progressChip,
+                          IconButton(
+                            tooltip: tr('toc'),
+                            icon: const Icon(Icons.toc),
+                            onPressed: () =>
+                                _scaffoldKey.currentState?.openDrawer(),
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: (v) {
+                              if (v == 'bookmark') _addBookmark();
+                              if (v == 'saved') _openSavedItems();
+                              if (v == 'settings')
+                                showReadingSettingsSheet(context);
+                              if (v == 'home') {
+                                Navigator.of(context)
+                                    .popUntil((route) => route.isFirst);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'bookmark',
+                                child: Text(tr('bookmark_add')),
+                              ),
+                              PopupMenuItem(
+                                value: 'saved',
+                                child: Text(tr('bookmark_list')),
+                              ),
+                              PopupMenuItem(
+                                value: 'settings',
+                                child: Text(tr('reading_settings')),
+                              ),
+                              PopupMenuItem(
+                                value: 'home',
+                                child: Text(tr('home')),
+                              ),
+                            ],
+                          ),
+                        ]
+                      : [
+                          ?progressChip,
+                          IconButton(
+                            tooltip: tr('toc'),
+                            icon: const Icon(Icons.toc),
+                            onPressed: () =>
+                                _scaffoldKey.currentState?.openDrawer(),
+                          ),
+                          IconButton(
+                            tooltip: tr('bookmark_add'),
+                            icon: const Icon(Icons.bookmark_add_outlined),
+                            onPressed: _addBookmark,
+                          ),
+                          IconButton(
+                            tooltip: tr('bookmark_list'),
+                            icon: const Icon(Icons.bookmarks_outlined),
+                            onPressed: _openSavedItems,
+                          ),
+                          IconButton(
+                            tooltip: tr('reading_settings'),
+                            icon: const Icon(Icons.tune),
+                            onPressed: () => showReadingSettingsSheet(context),
+                          ),
+                          IconButton(
+                            tooltip: tr('home'),
+                            icon: const Icon(Icons.home_outlined),
+                            onPressed: () =>
+                                Navigator.of(context)
+                                    .popUntil((route) => route.isFirst),
+                          ),
+                        ],
+                ),
           drawer: Drawer(
             child: EpubViewTableOfContents(controller: _epubController),
           ),
-          body: Container(
-            color: settings.background.color,
-            child: EpubView(
-              controller: _epubController,
-              builders: EpubViewBuilders<DefaultBuilderOptions>(
-                options: DefaultBuilderOptions(
-                  textStyle: settings.textStyle,
-                  chapterPadding: EdgeInsets.all(settings.pageMargin),
-                  paragraphPadding: EdgeInsets.only(
-                    left: settings.pageMargin + settings.paragraphIndent,
-                    right: settings.pageMargin,
-                  ),
-                ),
-                errorBuilder: (context, error) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(tr('epub_open_error', {'error': '$error'})),
+          body: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => _uiVisibility.show(),
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (n) {
+                if (n.scrollDelta != null) _uiVisibility.feed(n.scrollDelta!);
+                return false;
+              },
+              child: Container(
+                color: settings.background.color,
+                child: EpubView(
+                  controller: _epubController,
+                  builders: EpubViewBuilders<DefaultBuilderOptions>(
+                    options: DefaultBuilderOptions(
+                      textStyle: settings.textStyle,
+                      chapterPadding: EdgeInsets.all(settings.pageMargin),
+                      paragraphPadding: EdgeInsets.only(
+                        left: settings.pageMargin + settings.paragraphIndent,
+                        right: settings.pageMargin,
+                      ),
+                    ),
+                    errorBuilder: (context, error) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(tr('epub_open_error', {'error': '$error'})),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          bottomNavigationBar: settings.showProgress
+          bottomNavigationBar: settings.showProgress && _uiVisible
               ? SafeArea(
                   child: SizedBox(
                     height: 36,

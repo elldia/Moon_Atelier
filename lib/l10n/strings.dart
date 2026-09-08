@@ -302,10 +302,10 @@ const _dict = <String, List<String>>{
   // File source dialog
   'import_title': ['파일 가져오기', 'Import File', 'ファイルを取り込む', '导入文件'],
   'source_local': [
-    '내 컴퓨터에서 선택',
-    'Choose from this device',
-    'このデバイスから選択',
-    '从本设备选择',
+    '내 컴퓨터 or 핸드폰에서 가져오기',
+    'Import from this computer or phone',
+    'このパソコンまたはスマホから取り込む',
+    '从这台电脑或手机导入',
   ],
   'source_clipboard': [
     '클립보드에서 붙여넣기',

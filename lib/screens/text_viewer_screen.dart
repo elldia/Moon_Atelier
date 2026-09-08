@@ -11,6 +11,7 @@ import '../models/highlight.dart';
 import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
 import '../widgets/glass.dart';
+import '../utils/scroll_ui_visibility.dart';
 import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
@@ -58,6 +59,12 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   Timer? _saveDebounce;
   late final List<String> _chunks;
   final Map<int, List<Highlight>> _highlightsByChunk = {};
+
+  bool _uiVisible = true;
+  double? _lastScrollPixels;
+  late final _uiVisibility = ScrollUiVisibility(
+    onChanged: (visible) => setState(() => _uiVisible = visible),
+  );
 
   int? _selectedChunkIndex;
   TextSelection? _selection;
@@ -123,6 +130,10 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     _progressNotifier.value = position.maxScrollExtent <= 0
         ? 1
         : (position.pixels / position.maxScrollExtent).clamp(0, 1);
+
+    final last = _lastScrollPixels;
+    if (last != null) _uiVisibility.feed(position.pixels - last);
+    _lastScrollPixels = position.pixels;
 
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 800), () {
@@ -379,134 +390,144 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         final settings = ReadingSettingsController.instance.value;
         return Scaffold(
           backgroundColor: settings.background.color,
-          appBar: glassAppBar(
-            context,
-            title: Text(widget.title, overflow: TextOverflow.ellipsis),
-            leading: IconButton(
-              tooltip: tr('back'),
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            actions: _buildAppBarActions(settings),
-          ),
-          body: _chunks.isEmpty
-              ? Center(child: Text(tr('content_not_found')))
-              : Stack(
-                  children: [
-                    TextSelectionTheme(
-                      // A vivid, theme-independent color so an in-progress
-                      // drag selection is unmistakably visible against any
-                      // reading background (default selection tinting can
-                      // be too subtle, especially on sepia/dark).
-                      data: const TextSelectionThemeData(
-                        selectionColor: Color(0x66FF6D00),
+          appBar: _uiVisible
+              ? glassAppBar(
+                  context,
+                  title: Text(widget.title, overflow: TextOverflow.ellipsis),
+                  leading: IconButton(
+                    tooltip: tr('back'),
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  actions: _buildAppBarActions(settings),
+                )
+              : null,
+          body: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => _uiVisibility.show(),
+            child: _chunks.isEmpty
+                ? Center(child: Text(tr('content_not_found')))
+                : Stack(
+                    children: [
+                      TextSelectionTheme(
+                        // A vivid, theme-independent color so an in-progress
+                        // drag selection is unmistakably visible against any
+                        // reading background (default selection tinting can
+                        // be too subtle, especially on sepia/dark).
+                        data: const TextSelectionThemeData(
+                          selectionColor: Color(0x66FF6D00),
+                        ),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.all(settings.pageMargin),
+                          itemCount: _chunks.length,
+                          itemBuilder: (context, index) {
+                            final chunk = _chunks[index];
+                            if (chunk.isEmpty) {
+                              return const SizedBox(height: 16);
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildChunk(index, chunk, settings),
+                            );
+                          },
+                        ),
                       ),
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.all(settings.pageMargin),
-                        itemCount: _chunks.length,
-                        itemBuilder: (context, index) {
-                          final chunk = _chunks[index];
-                          if (chunk.isEmpty) {
-                            return const SizedBox(height: 16);
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildChunk(index, chunk, settings),
-                          );
-                        },
-                      ),
-                    ),
-                    if (_selectedChunkIndex != null)
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: SafeArea(
-                          child: Material(
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(12),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.border_color, size: 18),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          tr('save_selection_prompt'),
+                      if (_selectedChunkIndex != null)
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: SafeArea(
+                            child: Material(
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(12),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.border_color,
+                                          size: 18,
                                         ),
-                                      ),
-                                      for (final color in _highlightColors)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 4,
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            tr('save_selection_prompt'),
                                           ),
-                                          child: InkWell(
-                                            onTap: () => setState(
-                                              () => _pendingHighlightColor =
-                                                  color,
+                                        ),
+                                        for (final color in _highlightColors)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 4,
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                            child: Container(
-                                              width: 24,
-                                              height: 24,
-                                              decoration: BoxDecoration(
-                                                color: Color(
-                                                  0xFF000000 | color.toARGB32(),
-                                                ),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color:
-                                                      _pendingHighlightColor ==
-                                                          color
-                                                      ? Theme.of(context)
-                                                            .colorScheme
-                                                            .primary
-                                                      : Colors.transparent,
-                                                  width: 2,
+                                            child: InkWell(
+                                              onTap: () => setState(
+                                                () => _pendingHighlightColor =
+                                                    color,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              child: Container(
+                                                width: 24,
+                                                height: 24,
+                                                decoration: BoxDecoration(
+                                                  color: Color(
+                                                    0xFF000000 |
+                                                        color.toARGB32(),
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color:
+                                                        _pendingHighlightColor ==
+                                                            color
+                                                        ? Theme.of(context)
+                                                              .colorScheme
+                                                              .primary
+                                                        : Colors.transparent,
+                                                    width: 2,
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: _cancelSelection,
+                                          child: Text(tr('cancel')),
                                         ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      TextButton(
-                                        onPressed: _cancelSelection,
-                                        child: Text(tr('cancel')),
-                                      ),
-                                      TextButton(
-                                        onPressed: _saveHighlight,
-                                        child: Text(tr('save_as_highlight')),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        TextButton(
+                                          onPressed: _saveHighlight,
+                                          child: Text(tr('save_as_highlight')),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-          bottomNavigationBar: settings.showProgress && _chunks.length > 1
+                    ],
+                  ),
+          ),
+          bottomNavigationBar:
+              settings.showProgress && _chunks.length > 1 && _uiVisible
               ? SafeArea(
                   child: SizedBox(
                     height: 36,

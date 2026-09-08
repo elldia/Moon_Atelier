@@ -9,6 +9,7 @@ import '../data/bookmark_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
+import '../utils/scroll_ui_visibility.dart';
 import '../widgets/glass.dart';
 import '../widgets/page_jump_row.dart';
 import 'saved_items_screen.dart';
@@ -53,6 +54,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   // until pdfx's own listenable actually reports a (different) value —
   // i.e. until the user scrolls for real.
   int? _pendingJumpPage;
+
+  bool _uiVisible = true;
+  late final _uiVisibility = ScrollUiVisibility(
+    onChanged: (visible) => setState(() => _uiVisible = visible),
+  );
 
   @override
   void initState() {
@@ -176,70 +182,78 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             : const SizedBox.shrink();
 
         return Scaffold(
-          appBar: glassAppBar(
-            context,
-            title: Text(widget.title, overflow: TextOverflow.ellipsis),
-            leading: IconButton(
-              tooltip: tr('back'),
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            actions: narrow
-                ? [
-                    progressChip,
-                    PopupMenuButton<String>(
-                      onSelected: (v) {
-                        if (v == 'bookmark') _addBookmark();
-                        if (v == 'saved') _openSavedItems();
-                        if (v == 'home') {
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'bookmark',
-                          child: Text(tr('bookmark_add')),
-                        ),
-                        PopupMenuItem(
-                          value: 'saved',
-                          child: Text(tr('bookmark_list')),
-                        ),
-                        PopupMenuItem(value: 'home', child: Text(tr('home'))),
-                      ],
-                    ),
-                  ]
-                : [
-                    progressChip,
-                    IconButton(
-                      tooltip: tr('bookmark_add'),
-                      icon: const Icon(Icons.bookmark_add_outlined),
-                      onPressed: _addBookmark,
-                    ),
-                    IconButton(
-                      tooltip: tr('bookmark_list'),
-                      icon: const Icon(Icons.bookmarks_outlined),
-                      onPressed: _openSavedItems,
-                    ),
-                    IconButton(
-                      tooltip: tr('home'),
-                      icon: const Icon(Icons.home_outlined),
-                      onPressed: () =>
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst),
-                    ),
-                  ],
-          ),
+          appBar: !_uiVisible
+              ? null
+              : glassAppBar(
+                  context,
+                  title: Text(widget.title, overflow: TextOverflow.ellipsis),
+                  leading: IconButton(
+                    tooltip: tr('back'),
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  actions: narrow
+                      ? [
+                          progressChip,
+                          PopupMenuButton<String>(
+                            onSelected: (v) {
+                              if (v == 'bookmark') _addBookmark();
+                              if (v == 'saved') _openSavedItems();
+                              if (v == 'home') {
+                                Navigator.of(context)
+                                    .popUntil((route) => route.isFirst);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'bookmark',
+                                child: Text(tr('bookmark_add')),
+                              ),
+                              PopupMenuItem(
+                                value: 'saved',
+                                child: Text(tr('bookmark_list')),
+                              ),
+                              PopupMenuItem(
+                                value: 'home',
+                                child: Text(tr('home')),
+                              ),
+                            ],
+                          ),
+                        ]
+                      : [
+                          progressChip,
+                          IconButton(
+                            tooltip: tr('bookmark_add'),
+                            icon: const Icon(Icons.bookmark_add_outlined),
+                            onPressed: _addBookmark,
+                          ),
+                          IconButton(
+                            tooltip: tr('bookmark_list'),
+                            icon: const Icon(Icons.bookmarks_outlined),
+                            onPressed: _openSavedItems,
+                          ),
+                          IconButton(
+                            tooltip: tr('home'),
+                            icon: const Icon(Icons.home_outlined),
+                            onPressed: () =>
+                                Navigator.of(context)
+                                    .popUntil((route) => route.isFirst),
+                          ),
+                        ],
+                ),
           body: PdfViewPinch(
             controller: _pdfController,
             // A real drag/pinch means the user has taken over navigation —
             // hand display control back from _pendingJumpPage to pdfx's own
             // (now-trustworthy, since it's tracking a live gesture) value.
             onInteractionStart: (_) {
+              _uiVisibility.show();
               if (_pendingJumpPage != null) {
                 setState(() => _pendingJumpPage = null);
               }
             },
+            onInteractionUpdate: (details) =>
+                _uiVisibility.feed(-details.focalPointDelta.dy),
             builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
               options: const DefaultBuilderOptions(),
               documentLoaderBuilder: (context) =>
@@ -276,7 +290,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: showBar
+          bottomNavigationBar: showBar && _uiVisible
               ? SafeArea(
                   child: SizedBox(
                     height: 36,
