@@ -9,7 +9,9 @@ import '../data/bookmark_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
+import '../utils/pdf_text_extractor.dart';
 import '../utils/scroll_ui_visibility.dart';
+import '../utils/tts_reader.dart';
 import '../widgets/glass.dart';
 import '../widgets/page_jump_row.dart';
 import 'saved_items_screen.dart';
@@ -60,6 +62,22 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     onChanged: (visible) => setState(() => _uiVisible = visible),
   );
 
+  // pdfx only rasterizes pages to images (no text layer), so page text for
+  // search/TTS is pulled independently from a second, private pdf.js
+  // document opened on the same bytes — see PdfTextExtractor.
+  late final _textExtractor = PdfTextExtractor(widget.bytes);
+
+  bool _isSpeaking = false;
+  int? _speakingPage;
+
+  bool _searchActive = false;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<int> _searchMatches = []; // page numbers (1-based) containing a hit
+  int _currentMatchIndex = -1;
+  Timer? _searchDebounce;
+  int _searchToken = 0;
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +110,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
   @override
   void dispose() {
+    if (_isSpeaking) TtsReader.instance.stop();
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    _textExtractor.dispose();
     _saveDebounce?.cancel();
     _pdfController.pageListenable.removeListener(_onPageChanged);
     _pdfController.dispose();
@@ -149,6 +171,129 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     );
   }
 
+  void _toggleSpeech() {
+    if (_isSpeaking) {
+      TtsReader.instance.stop();
+      setState(() {
+        _isSpeaking = false;
+        _speakingPage = null;
+      });
+      return;
+    }
+    _speakPage(_pendingJumpPage ?? _pdfController.pageListenable.value);
+  }
+
+  Future<void> _speakPage(int page) async {
+    final pagesCount = _pdfController.pagesCount;
+    if (pagesCount == null || page > pagesCount) {
+      setState(() {
+        _isSpeaking = false;
+        _speakingPage = null;
+      });
+      return;
+    }
+    _jumpToPage(page, duration: Duration.zero);
+    setState(() {
+      _isSpeaking = true;
+      _speakingPage = page;
+    });
+    final text = await _textExtractor.extractPageText(page);
+    if (!mounted || !_isSpeaking || _speakingPage != page) return;
+    final settings = ReadingSettingsController.instance.value;
+    TtsReader.instance.speak(
+      text,
+      rate: settings.ttsRate,
+      voice: TtsReader.instance.findVoice(settings.ttsVoiceUri),
+      onDone: () {
+        if (!mounted || !_isSpeaking) return;
+        _speakPage(page + 1);
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isSpeaking = false;
+          _speakingPage = null;
+        });
+      },
+    );
+  }
+
+  // Debounce the trigger and yield between pages (each extractPageText call
+  // is already async/awaited, so this naturally can't block the UI thread
+  // the way a synchronous full-book scan could).
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    if (query.isEmpty) {
+      _searchToken++;
+      setState(() {
+        _searchQuery = '';
+        _searchMatches = [];
+        _currentMatchIndex = -1;
+      });
+      return;
+    }
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _runSearch(query),
+    );
+  }
+
+  Future<void> _runSearch(String query) async {
+    final token = ++_searchToken;
+    final pagesCount = _pdfController.pagesCount;
+    if (pagesCount == null || pagesCount <= 0) return;
+    final matches = <int>[];
+    setState(() {
+      _searchQuery = query;
+      _searchMatches = matches;
+      _currentMatchIndex = -1;
+    });
+    final lowerQuery = query.toLowerCase();
+    for (var page = 1; page <= pagesCount; page++) {
+      if (token != _searchToken) return; // a newer search took over
+      final text = await _textExtractor.extractPageText(page);
+      if (token != _searchToken) return;
+      if (text.toLowerCase().contains(lowerQuery)) {
+        matches.add(page);
+        if (!mounted) return;
+        setState(() {});
+      }
+    }
+    if (!mounted || token != _searchToken) return;
+    setState(() => _currentMatchIndex = matches.isEmpty ? -1 : 0);
+    if (_currentMatchIndex >= 0) _jumpToMatch(_currentMatchIndex);
+  }
+
+  void _jumpToMatch(int matchIndex) {
+    if (matchIndex < 0 || matchIndex >= _searchMatches.length) return;
+    setState(() => _currentMatchIndex = matchIndex);
+    _jumpToPage(_searchMatches[matchIndex], duration: Duration.zero);
+  }
+
+  void _nextMatch() {
+    if (_searchMatches.isEmpty) return;
+    _jumpToMatch((_currentMatchIndex + 1) % _searchMatches.length);
+  }
+
+  void _prevMatch() {
+    if (_searchMatches.isEmpty) return;
+    _jumpToMatch(
+      (_currentMatchIndex - 1 + _searchMatches.length) % _searchMatches.length,
+    );
+  }
+
+  void _closeSearch() {
+    _searchDebounce?.cancel();
+    _searchToken++;
+    setState(() {
+      _searchActive = false;
+      _searchQuery = '';
+      _searchMatches = [];
+      _currentMatchIndex = -1;
+      _searchController.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -186,25 +331,78 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ? null
               : glassAppBar(
                   context,
-                  title: Text(widget.title, overflow: TextOverflow.ellipsis),
+                  title: _searchActive
+                      ? TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: tr('content_search_hint'),
+                            border: InputBorder.none,
+                          ),
+                          onChanged: _onSearchChanged,
+                        )
+                      : Text(widget.title, overflow: TextOverflow.ellipsis),
                   leading: IconButton(
                     tooltip: tr('back'),
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
-                  actions: narrow
+                  actions: _searchActive
+                      ? [
+                          if (_searchQuery.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _searchMatches.isEmpty
+                                      ? '0/0'
+                                      : '${_currentMatchIndex + 1}/${_searchMatches.length}',
+                                ),
+                              ),
+                            ),
+                          IconButton(
+                            tooltip: tr('search_prev'),
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                            onPressed: _searchMatches.isEmpty
+                                ? null
+                                : _prevMatch,
+                          ),
+                          IconButton(
+                            tooltip: tr('search_next'),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            onPressed: _searchMatches.isEmpty
+                                ? null
+                                : _nextMatch,
+                          ),
+                          IconButton(
+                            tooltip: tr('close_search'),
+                            icon: const Icon(Icons.close),
+                            onPressed: _closeSearch,
+                          ),
+                        ]
+                      : narrow
                       ? [
                           progressChip,
                           PopupMenuButton<String>(
                             onSelected: (v) {
+                              if (v == 'tts') _toggleSpeech();
                               if (v == 'bookmark') _addBookmark();
                               if (v == 'saved') _openSavedItems();
-                              if (v == 'home') {
-                                Navigator.of(context)
-                                    .popUntil((route) => route.isFirst);
+                              if (v == 'search') {
+                                setState(() => _searchActive = true);
                               }
                             },
                             itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'tts',
+                                child: Text(
+                                  _isSpeaking
+                                      ? tr('tts_stop')
+                                      : tr('tts_start'),
+                                ),
+                              ),
                               PopupMenuItem(
                                 value: 'bookmark',
                                 child: Text(tr('bookmark_add')),
@@ -213,15 +411,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                                 value: 'saved',
                                 child: Text(tr('bookmark_list')),
                               ),
-                              PopupMenuItem(
-                                value: 'home',
-                                child: Text(tr('home')),
-                              ),
+                              if (pagesCount != null && pagesCount > 0)
+                                PopupMenuItem(
+                                  value: 'search',
+                                  child: Text(tr('search')),
+                                ),
                             ],
                           ),
                         ]
                       : [
                           progressChip,
+                          IconButton(
+                            tooltip: _isSpeaking
+                                ? tr('tts_stop')
+                                : tr('tts_start'),
+                            icon: Icon(
+                              _isSpeaking
+                                  ? Icons.stop_circle_outlined
+                                  : Icons.volume_up_outlined,
+                            ),
+                            onPressed: pagesCount == null || pagesCount == 0
+                                ? null
+                                : _toggleSpeech,
+                          ),
                           IconButton(
                             tooltip: tr('bookmark_add'),
                             icon: const Icon(Icons.bookmark_add_outlined),
@@ -232,13 +444,13 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                             icon: const Icon(Icons.bookmarks_outlined),
                             onPressed: _openSavedItems,
                           ),
-                          IconButton(
-                            tooltip: tr('home'),
-                            icon: const Icon(Icons.home_outlined),
-                            onPressed: () =>
-                                Navigator.of(context)
-                                    .popUntil((route) => route.isFirst),
-                          ),
+                          if (pagesCount != null && pagesCount > 0)
+                            IconButton(
+                              tooltip: tr('search'),
+                              icon: const Icon(Icons.search),
+                              onPressed: () =>
+                                  setState(() => _searchActive = true),
+                            ),
                         ],
                 ),
           body: PdfViewPinch(

@@ -153,28 +153,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
     setState(() => _isPicking = true);
     _debugStatus.value = '1) 파일 선택창 여는 중...';
     try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: [
-          'epub',
-          'pdf',
-          'txt',
-          'docx',
-          'rtf',
-          'musicxml',
-          'mxl',
-          'zip',
-        ],
-        // Default true: file_picker arms a 500ms auto-cancel timer the
-        // moment the browser window blurs (which happens as soon as iOS's
-        // native file sheet takes over the screen), completing with null if
-        // the real file-selected event hasn't arrived by then. On iOS,
-        // handing the picked file back to the web view can take longer than
-        // that, so a real selection was being reported as a cancellation —
-        // exactly the "opens the native fine, picks a file, then acts like
-        // nothing was chosen" symptom reported on iPhone Chrome.
-        webOptions: const FilePickerWebOptions(cancelUploadOnWindowBlur: false),
-      );
+      final file =
+          await FilePicker.pickFile(
+            type: FileType.custom,
+            allowedExtensions: [
+              'epub',
+              'pdf',
+              'txt',
+              'docx',
+              'rtf',
+              'musicxml',
+              'mxl',
+              'zip',
+            ],
+            // Default true: file_picker arms a 500ms auto-cancel timer the
+            // moment the browser window blurs (which happens as soon as iOS's
+            // native file sheet takes over the screen), completing with null if
+            // the real file-selected event hasn't arrived by then. On iOS,
+            // handing the picked file back to the web view can take longer than
+            // that, so a real selection was being reported as a cancellation —
+            // exactly the "opens the native fine, picks a file, then acts like
+            // nothing was chosen" symptom reported on iPhone Chrome.
+            webOptions: const FilePickerWebOptions(
+              cancelUploadOnWindowBlur: false,
+            ),
+          ).timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw TimeoutException('file picker'),
+          );
       if (file == null) {
         _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
         return;
@@ -215,6 +221,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         open: true,
       );
       _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: 시간 초과 — $e)';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
     } catch (e) {
       if (!mounted) return;
       _debugStatus.value = '(실패: $e)';

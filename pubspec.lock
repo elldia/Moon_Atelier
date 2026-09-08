@@ -130,7 +130,7 @@ packages:
     source: hosted
     version: "3.3.0"
   epubx:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: epubx
       sha256: "0ab9354efa177c4be52c46f857bc15bf83f83a92667fb673465c8f89fca26db3"
@@ -289,7 +289,7 @@ packages:
     source: hosted
     version: "2.0.2"
   html:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: html
       sha256: "6d1264f2dffa1b1101c25a91dff0dc2daee4c18e87cd8538729773c073dbf602"

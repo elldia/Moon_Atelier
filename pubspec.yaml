@@ -49,6 +49,11 @@ dependencies:
   cp949_codec: ^1.0.2
   web: ^1.1.1
   google_fonts: ^6.2.1
+  # Direct deps (otherwise only transitive via epub_view) so the EPUB
+  # viewer's search/TTS can independently parse chapter HTML into plain
+  # text — epub_view itself only exposes rendering, not raw chapter text.
+  epubx: ^4.0.0
+  html: ^0.15.6
 
 dependency_overrides:
   # flutter_html 3.0.0 (via epub_view) calls a private query_selector API
