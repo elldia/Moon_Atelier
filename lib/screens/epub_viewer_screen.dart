@@ -61,6 +61,15 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
   bool _isSpeaking = false;
   int? _speakingChapter;
 
+  // A hung EPUB parse/load (e.g. a slow network, or a device under memory
+  // pressure) previously left the reader stuck on a blank/loading screen
+  // forever with no way back except force-closing the tab. Bound it: if
+  // loading hasn't finished within this long, show a real error with a way
+  // back to the library instead of spinning indefinitely.
+  static const _loadTimeoutDuration = Duration(seconds: 30);
+  Timer? _loadTimeoutTimer;
+  bool _loadTimedOut = false;
+
   bool _searchActive = false;
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -77,6 +86,12 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
       epubCfi: widget.initialCfi,
     );
     _epubController.currentValueListenable.addListener(_onPositionChanged);
+    _loadTimeoutTimer = Timer(_loadTimeoutDuration, () {
+      if (!mounted) return;
+      if (_epubController.loadingState.value == EpubViewLoadingState.loading) {
+        setState(() => _loadTimedOut = true);
+      }
+    });
   }
 
   /// epub_view only exposes chapter-level counts publicly (`tableOfContents`),
@@ -130,6 +145,7 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
   @override
   void dispose() {
     if (_isSpeaking) TtsReader.instance.stop();
+    _loadTimeoutTimer?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
     _saveDebounce?.cancel();
@@ -305,6 +321,35 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadTimedOut) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: tr('back'),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 16),
+                Text(tr('load_timeout'), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: Text(tr('load_timeout_back')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return AnimatedBuilder(
       // _approxTotalParagraphs() (and so the 100+"page" jump row's
       // visibility) depends on the table of contents, which isn't
@@ -523,6 +568,8 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
                         child: Text(tr('epub_open_error', {'error': '$error'})),
                       ),
                     ),
+                    loaderBuilder: (context) =>
+                        const Center(child: CircularProgressIndicator()),
                   ),
                 ),
               ),

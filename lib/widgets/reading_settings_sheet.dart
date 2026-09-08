@@ -138,6 +138,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       _SectionLabel(tr('font_section')),
                       _FontSelector(
                         value: _draft.font,
+                        weight: _draft.fontWeight,
                         onChanged: (v) => _set((s) => s.copyWith(font: v)),
                       ),
                       Padding(
@@ -152,6 +153,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       _SectionLabel(tr('weight_section')),
                       _WeightSelector(
                         value: _draft.fontWeight,
+                        font: _draft.font,
                         onChanged: (v) =>
                             _set((s) => s.copyWith(fontWeight: v)),
                       ),
@@ -380,8 +382,13 @@ class _BackgroundSwatch extends StatelessWidget {
 
 class _FontSelector extends StatelessWidget {
   final ReadingFont value;
+  final FontWeight weight;
   final ValueChanged<ReadingFont> onChanged;
-  const _FontSelector({required this.value, required this.onChanged});
+  const _FontSelector({
+    required this.value,
+    required this.weight,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +398,10 @@ class _FontSelector extends StatelessWidget {
       children: [
         for (final font in ReadingFont.values)
           ChoiceChip(
-            label: Text(fontLabel(font)),
+            label: Text(
+              fontLabel(font),
+              style: font.baseTextStyle(weight: weight),
+            ),
             selected: value == font,
             onSelected: (_) => onChanged(font),
           ),
@@ -402,8 +412,13 @@ class _FontSelector extends StatelessWidget {
 
 class _WeightSelector extends StatelessWidget {
   final FontWeight value;
+  final ReadingFont font;
   final ValueChanged<FontWeight> onChanged;
-  const _WeightSelector({required this.value, required this.onChanged});
+  const _WeightSelector({
+    required this.value,
+    required this.font,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +429,10 @@ class _WeightSelector extends StatelessWidget {
       children: [
         for (final weight in ReadingWeight.values)
           ChoiceChip(
-            label: Text(weightLabel(weight)),
+            label: Text(
+              weightLabel(weight),
+              style: font.baseTextStyle(weight: weight.value),
+            ),
             selected: current == weight,
             onSelected: (_) => onChanged(weight.value),
           ),

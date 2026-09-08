@@ -78,6 +78,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
+  // A hung PDF load (e.g. slow network, or a device under memory pressure)
+  // previously left the reader spinning forever with no way back except
+  // force-closing the tab. Bound it: if pagesCount hasn't shown up within
+  // this long, show a real error with a way back to the library.
+  static const _loadTimeoutDuration = Duration(seconds: 30);
+  Timer? _loadTimeoutTimer;
+  bool _loadTimedOut = false;
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +97,13 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       initialPage: widget.initialPage ?? 1,
     );
     _pdfController.pageListenable.addListener(_onPageChanged);
+    _loadTimeoutTimer = Timer(_loadTimeoutDuration, () {
+      if (!mounted) return;
+      final pagesCount = _pdfController.pagesCount;
+      if (pagesCount == null || pagesCount <= 0) {
+        setState(() => _loadTimedOut = true);
+      }
+    });
   }
 
   void _onPageChanged() {
@@ -111,6 +126,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   void dispose() {
     if (_isSpeaking) TtsReader.instance.stop();
+    _loadTimeoutTimer?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
     _textExtractor.dispose();
@@ -296,6 +312,35 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadTimedOut) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: tr('back'),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 16),
+                Text(tr('load_timeout'), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: Text(tr('load_timeout_back')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return AnimatedBuilder(
       // pageListenable alone won't fire once the document finishes loading
       // if the page number hasn't changed yet (ValueNotifier only notifies

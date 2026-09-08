@@ -255,6 +255,13 @@ const _dict = <String, List<String>>{
     'EPUBを開く際にエラーが発生しました: {error}',
     '打开EPUB时发生错误: {error}',
   ],
+  'load_timeout': [
+    '불러오는 데 너무 오래 걸리고 있어요.\n네트워크 상태를 확인하고 다시 시도해 주세요.',
+    "This is taking too long to load.\nPlease check your connection and try again.",
+    '読み込みに時間がかかりすぎています。\nネットワーク状態を確認して再度お試しください。',
+    '加载时间过长。\n请检查网络状态后重试。',
+  ],
+  'load_timeout_back': ['서재로 돌아가기', 'Back to library', 'ライブラリへ戻る', '返回书房'],
   'pdf_open_error': [
     'PDF를 여는 중 오류가 발생했습니다: {error}',
     'An error occurred opening the PDF: {error}',
