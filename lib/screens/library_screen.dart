@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -330,15 +331,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
     if (!mounted || action == null) return;
     if (action == 'file') {
-      final source = await showFileSourceDialog(context);
+      // onPickLocal/onPickClipboard fire synchronously from inside the
+      // dialog's own onTap (see file_source_dialog.dart) rather than after
+      // this awaited Future resolves, so the file chooser stays inside the
+      // tap's transient activation on mobile browsers.
+      final source = await showFileSourceDialog(
+        context,
+        onPickLocal: () => unawaited(_pickBook()),
+        onPickClipboard: () => unawaited(_addFromClipboard()),
+      );
       if (!mounted || source == null) return;
       switch (source) {
         case FileSource.local:
-          await _pickBook();
-          break;
         case FileSource.clipboard:
-          await _addFromClipboard();
-          break;
+          break; // already handled synchronously via the callbacks above
         case FileSource.oneDrive:
         case FileSource.dropbox:
         case FileSource.cloudApp:

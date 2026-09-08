@@ -17,15 +17,41 @@ enum FileSource {
   ftp,
 }
 
-Future<FileSource?> showFileSourceDialog(BuildContext context) {
+/// Shows the "where do you want to add a file from" picker.
+///
+/// [onPickLocal] and [onPickClipboard] are invoked synchronously from
+/// inside the tapped [ListTile]'s `onTap`, before the dialog is popped —
+/// not after awaiting this function's returned Future. That matters
+/// specifically for [onPickLocal]: browsers only allow a synthetic
+/// `<input type="file">.click()` to open the native file chooser while
+/// still inside the same synchronous call stack as a real user gesture
+/// ("transient activation"). Desktop browsers are lenient about a short
+/// async gap, but mobile browsers (iOS Safari in particular) are not —
+/// going through an awaited `Navigator.pop()` + dialog-close animation
+/// first silently drops the file chooser, which looks like the "add
+/// file" button doing nothing / spinning forever on mobile.
+Future<FileSource?> showFileSourceDialog(
+  BuildContext context, {
+  required VoidCallback onPickLocal,
+  required VoidCallback onPickClipboard,
+}) {
   return showDialog<FileSource>(
     context: context,
-    builder: (context) => const _FileSourceDialog(),
+    builder: (context) => _FileSourceDialog(
+      onPickLocal: onPickLocal,
+      onPickClipboard: onPickClipboard,
+    ),
   );
 }
 
 class _FileSourceDialog extends StatelessWidget {
-  const _FileSourceDialog();
+  final VoidCallback onPickLocal;
+  final VoidCallback onPickClipboard;
+
+  const _FileSourceDialog({
+    required this.onPickLocal,
+    required this.onPickClipboard,
+  });
 
   static const _options = [
     (FileSource.local, Icons.laptop_outlined, 'source_local', true),
@@ -89,7 +115,23 @@ class _FileSourceDialog extends StatelessWidget {
                                 tr('coming_soon'),
                                 style: const TextStyle(fontSize: 12),
                               ),
-                        onTap: () => Navigator.of(context).pop(source),
+                        onTap: () {
+                          switch (source) {
+                            case FileSource.local:
+                              // Fires FilePicker.pickFile() synchronously,
+                              // before the pop, to preserve the tap's
+                              // "transient activation" for mobile browsers.
+                              onPickLocal();
+                              Navigator.of(context).pop();
+                              break;
+                            case FileSource.clipboard:
+                              onPickClipboard();
+                              Navigator.of(context).pop();
+                              break;
+                            default:
+                              Navigator.of(context).pop(source);
+                          }
+                        },
                       ),
                   ],
                 ),
