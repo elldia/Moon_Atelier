@@ -15,9 +15,9 @@ enum AppLocale {
   Locale get locale => Locale(name);
 }
 
-/// The app's own display name, user-selectable between the international
-/// and Korean branding. Independent of [AppLocale] — a Japanese-interface
-/// user can still pick either name.
+/// The app's own display name. Automatically follows [AppLocale]: Korean
+/// shows the Korean brand, every other interface language shows the
+/// international one. See [appBrandForLocale].
 enum AppBrand {
   moonAtelier('Moon Atelier'),
   moonlightLibrary('달빛서재');
@@ -25,6 +25,13 @@ enum AppBrand {
   final String label;
   const AppBrand(this.label);
 }
+
+/// The app name that should be shown for a given interface [locale] —
+/// Korean gets the Korean brand, everything else gets the international
+/// one. Call this whenever [AppLocale] changes to keep [ReadingSettings]'s
+/// stored `appName` in sync.
+AppBrand appBrandForLocale(AppLocale locale) =>
+    locale == AppLocale.ko ? AppBrand.moonlightLibrary : AppBrand.moonAtelier;
 
 /// A curated, Korean-reading-friendly font list. The key is what gets
 /// persisted; [label] is shown in the settings UI. Pretendard and MaruBuri
@@ -163,7 +170,7 @@ class ReadingSettings {
     themeMode: ThemeMode.system,
     showProgress: true,
     locale: AppLocale.ko,
-    appName: AppBrand.moonAtelier,
+    appName: AppBrand.moonlightLibrary,
     showFormatIcon: true,
   );
 

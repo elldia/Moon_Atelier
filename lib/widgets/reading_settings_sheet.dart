@@ -74,16 +74,15 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionLabel(tr('app_name_section')),
-                      _AppNameSelector(
-                        value: _draft.appName,
-                        onChanged: (v) => _set((s) => s.copyWith(appName: v)),
-                      ),
-                      const SizedBox(height: 20),
                       _SectionLabel(tr('language_section')),
                       _LocaleSelector(
                         value: _draft.locale,
-                        onChanged: (v) => _set((s) => s.copyWith(locale: v)),
+                        onChanged: (v) => _set(
+                          (s) => s.copyWith(
+                            locale: v,
+                            appName: appBrandForLocale(v),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       _SectionLabel(tr('display_mode')),
@@ -275,28 +274,6 @@ class _LocaleSelector extends StatelessWidget {
             label: Text(locale.label),
             selected: value == locale,
             onSelected: (_) => onChanged(locale),
-          ),
-      ],
-    );
-  }
-}
-
-class _AppNameSelector extends StatelessWidget {
-  final AppBrand value;
-  final ValueChanged<AppBrand> onChanged;
-  const _AppNameSelector({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final brand in AppBrand.values)
-          ChoiceChip(
-            label: Text(brand.label),
-            selected: value == brand,
-            onSelected: (_) => onChanged(brand),
           ),
       ],
     );
