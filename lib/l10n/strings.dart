@@ -132,6 +132,8 @@ const _dict = <String, List<String>>{
   'close_search': ['검색 닫기', 'Close search', '検索を閉じる', '关闭搜索'],
   'search_hint': ['이름으로 검색', 'Search by name', '名前で検索', '按名称搜索'],
   'reading_settings': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
+  'tts_start': ['음성으로 듣기', 'Read aloud', '音声で聞く', '朗读'],
+  'tts_stop': ['듣기 중지', 'Stop reading', '再生を停止', '停止朗读'],
   'cancel_selection': ['선택 취소', 'Cancel selection', '選択解除', '取消选择'],
   'selected_count': ['{n}개 선택됨', '{n} selected', '{n}件選択中', '已选择{n}项'],
   'no_search_results': [

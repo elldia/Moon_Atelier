@@ -12,6 +12,7 @@ import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
 import '../widgets/glass.dart';
 import '../utils/scroll_ui_visibility.dart';
+import '../utils/tts_reader.dart';
 import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
@@ -65,6 +66,9 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   late final _uiVisibility = ScrollUiVisibility(
     onChanged: (visible) => setState(() => _uiVisible = visible),
   );
+
+  bool _isSpeaking = false;
+  int? _speakingChunkIndex;
 
   int? _selectedChunkIndex;
   TextSelection? _selection;
@@ -271,8 +275,58 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     );
   }
 
+  void _toggleSpeech() {
+    if (_isSpeaking) {
+      TtsReader.instance.stop();
+      setState(() {
+        _isSpeaking = false;
+        _speakingChunkIndex = null;
+      });
+      return;
+    }
+    // Start from whichever chunk is currently on screen, not necessarily
+    // chunk 0 — reading aloud should pick up where the reader already is.
+    final startIndex = _chunks.isEmpty
+        ? 0
+        : (_progressNotifier.value * (_chunks.length - 1)).round().clamp(
+            0,
+            _chunks.length - 1,
+          );
+    _speakChunk(startIndex);
+  }
+
+  void _speakChunk(int index) {
+    if (index >= _chunks.length) {
+      setState(() {
+        _isSpeaking = false;
+        _speakingChunkIndex = null;
+      });
+      return;
+    }
+    if (_chunks.length > 1) _seekToRatio(index / (_chunks.length - 1));
+    setState(() {
+      _isSpeaking = true;
+      _speakingChunkIndex = index;
+    });
+    TtsReader.instance.speak(
+      _chunks[index],
+      onDone: () {
+        if (!mounted || !_isSpeaking) return;
+        _speakChunk(index + 1);
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isSpeaking = false;
+          _speakingChunkIndex = null;
+        });
+      },
+    );
+  }
+
   @override
   void dispose() {
+    if (_isSpeaking) TtsReader.instance.stop();
     _saveDebounce?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -300,6 +354,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         ?progressChip,
         PopupMenuButton<String>(
           onSelected: (v) {
+            if (v == 'tts') _toggleSpeech();
             if (v == 'bookmark') _addBookmark();
             if (v == 'saved') _openSavedItems();
             if (v == 'settings') showReadingSettingsSheet(context);
@@ -308,6 +363,10 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
             }
           },
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'tts',
+              child: Text(_isSpeaking ? tr('tts_stop') : tr('tts_start')),
+            ),
             PopupMenuItem(value: 'bookmark', child: Text(tr('bookmark_add'))),
             PopupMenuItem(
               value: 'saved',
@@ -324,6 +383,13 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     }
     return [
       ?progressChip,
+      IconButton(
+        tooltip: _isSpeaking ? tr('tts_stop') : tr('tts_start'),
+        icon: Icon(
+          _isSpeaking ? Icons.stop_circle_outlined : Icons.volume_up_outlined,
+        ),
+        onPressed: _chunks.isEmpty ? null : _toggleSpeech,
+      ),
       IconButton(
         tooltip: tr('bookmark_add'),
         icon: const Icon(Icons.bookmark_add_outlined),
@@ -426,8 +492,14 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                             if (chunk.isEmpty) {
                               return const SizedBox(height: 16);
                             }
-                            return Padding(
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.only(bottom: 12),
+                              color: index == _speakingChunkIndex
+                                  ? settings.background.textColor.withValues(
+                                      alpha: 0.08,
+                                    )
+                                  : null,
                               child: _buildChunk(index, chunk, settings),
                             );
                           },
