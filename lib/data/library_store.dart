@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -22,6 +23,17 @@ class LibraryStore {
     return box;
   }
 
+  /// Closes and reopens the underlying IndexedDB-backed box, forcing a
+  /// fresh connection. Works around a known WebKit/iOS bug where the first
+  /// IndexedDB transaction in a session — especially one writing a large
+  /// binary payload like a book's bytes — can hang forever; reopening the
+  /// connection reliably unsticks it (mirroring what a manual page reload
+  /// does, per Apple/WebKit bug reports).
+  static Future<void> _reopenBox() async {
+    await _box?.close();
+    _box = await Hive.openBox(_boxName);
+  }
+
   static List<Book> loadAll() {
     final books = _b.keys
         .map((key) => _fromMap(key as String, _b.get(key) as Map))
@@ -34,7 +46,15 @@ class LibraryStore {
     return books;
   }
 
-  static Future<void> save(Book book) => _b.put(book.id, _toMap(book));
+  static Future<void> save(Book book) async {
+    final map = _toMap(book);
+    try {
+      await _b.put(book.id, map).timeout(const Duration(seconds: 12));
+    } on TimeoutException {
+      await _reopenBox();
+      await _b.put(book.id, map).timeout(const Duration(seconds: 20));
+    }
+  }
 
   static Future<void> delete(String id) => _b.delete(id);
 

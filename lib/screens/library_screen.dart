@@ -113,6 +113,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
       final bytes = await file.readAsBytes();
       await _addBook(name: file.name, format: format, bytes: bytes, open: true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('save_failed', {'error': '$e'}))));
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }

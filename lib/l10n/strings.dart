@@ -62,6 +62,12 @@ const _dict = <String, List<String>>{
     'サポートされていないファイル形式です。',
     '不支持的文件格式。',
   ],
+  'save_failed': [
+    '저장 중 오류가 발생했습니다: {error}\n다시 시도하거나 새로고침 후 시도해 주세요.',
+    'An error occurred while saving: {error}\nPlease try again, or refresh the page and retry.',
+    '保存中にエラーが発生しました: {error}\nもう一度お試しいただくか、ページを更新してから再試行してください。',
+    '保存时发生错误: {error}\n请重试,或刷新页面后再试。',
+  ],
   'clipboard_empty': [
     '클립보드에 텍스트가 없습니다.',
     'Clipboard has no text.',
