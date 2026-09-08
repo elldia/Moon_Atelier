@@ -61,6 +61,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final Set<String> _selectedBookIds = {};
   final Set<String> _selectedFolderIds = {};
 
+  // Temporary on-screen diagnostic for the mobile "add file" hang report —
+  // shows exactly which step of the pick/read/save pipeline is in progress
+  // or failed, since we have no console access on the reporter's device.
+  final ValueNotifier<String> _debugStatus = ValueNotifier('');
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +79,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _debugStatus.dispose();
     super.dispose();
   }
 
@@ -88,6 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _pickBook() async {
     setState(() => _isPicking = true);
+    _debugStatus.value = '1) 파일 선택창 여는 중...';
     try {
       final file = await FilePicker.pickFile(
         type: FileType.custom,
@@ -101,23 +108,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
           'mxl',
         ],
       );
-      if (file == null) return;
+      if (file == null) {
+        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
+        return;
+      }
+      _debugStatus.value = '2) 선택됨: ${file.name} — 형식 확인 중...';
 
       final format = Book.formatFromExtension(file.extension);
       if (format == null) {
         if (!mounted) return;
+        _debugStatus.value = '(실패: 지원하지 않는 형식)';
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
         return;
       }
 
+      _debugStatus.value = '3) 파일 내용 읽는 중...';
       final bytes = await file.readAsBytes().timeout(
         const Duration(seconds: 20),
         onTimeout: () => throw TimeoutException('reading the picked file'),
       );
+      _debugStatus.value = '4) ${bytes.length}바이트 읽음 — 저장소에 저장 중...';
       await _addBook(name: file.name, format: format, bytes: bytes, open: true);
+      _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
     } catch (e) {
       if (!mounted) return;
+      _debugStatus.value = '(실패: $e)';
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('save_failed', {'error': '$e'}))));
     } finally {
@@ -307,6 +323,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _showAddMenu() async {
+    _debugStatus.value = '0) + 버튼 눌림';
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -342,9 +359,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
       // dialog's own onTap (see file_source_dialog.dart) rather than after
       // this awaited Future resolves, so the file chooser stays inside the
       // tap's transient activation on mobile browsers.
+      _debugStatus.value = '0.5) 파일 등록 선택됨 — 소스 선택창 여는 중';
       final source = await showFileSourceDialog(
         context,
-        onPickLocal: () => unawaited(_pickBook()),
+        onPickLocal: () {
+          _debugStatus.value = '0.9) 내 컴퓨터에서 선택 눌림';
+          unawaited(_pickBook());
+        },
         onPickClipboard: () => unawaited(_addFromClipboard()),
       );
       if (!mounted || source == null) return;
@@ -1026,11 +1047,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
           bottomNavigationBar: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text(
-                tr('large_file_delay_hint'),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: Theme.of(context).hintColor),
+              child: ValueListenableBuilder<String>(
+                valueListenable: _debugStatus,
+                builder: (context, status, _) => Text(
+                  status.isEmpty ? tr('large_file_delay_hint') : status,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: status.isEmpty
+                        ? Theme.of(context).hintColor
+                        : Theme.of(context).colorScheme.primary,
+                    fontWeight: status.isEmpty ? null : FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
