@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:file_picker_web/file_picker_web.dart' show FilePickerWebOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +13,7 @@ import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../utils/docx_text_extractor.dart';
 import '../utils/epub_toc_patcher.dart';
+import '../utils/file_pick_watchdog.dart';
 import '../utils/musicxml_extractor.dart';
 import '../utils/rtf_text_extractor.dart';
 import '../utils/text_decoder.dart';
@@ -153,9 +152,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
     setState(() => _isPicking = true);
     _debugStatus.value = '1) 파일 선택창 여는 중...';
     try {
+      // pickFileWithWatchdog keeps file_picker's own blur-triggered
+      // auto-cancel disabled (its hardcoded 500ms grace period was too
+      // short for iOS handing a picked file back to the web view — real
+      // selections were being reported as cancellations) but adds its own,
+      // far more generous focus-based recovery, since disabling that
+      // entirely left a picker that never resolves at all (a subsequent
+      // pick attempt after already viewing a book — heavier page, more
+      // memory pressure — was reported hanging indefinitely on iOS) with
+      // nothing to fall back on short of this function's own 90s timeout.
       final file =
-          await FilePicker.pickFile(
-            type: FileType.custom,
+          await pickFileWithWatchdog(
             allowedExtensions: [
               'epub',
               'pdf',
@@ -166,17 +173,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
               'mxl',
               'zip',
             ],
-            // Default true: file_picker arms a 500ms auto-cancel timer the
-            // moment the browser window blurs (which happens as soon as iOS's
-            // native file sheet takes over the screen), completing with null if
-            // the real file-selected event hasn't arrived by then. On iOS,
-            // handing the picked file back to the web view can take longer than
-            // that, so a real selection was being reported as a cancellation —
-            // exactly the "opens the native fine, picks a file, then acts like
-            // nothing was chosen" symptom reported on iPhone Chrome.
-            webOptions: const FilePickerWebOptions(
-              cancelUploadOnWindowBlur: false,
-            ),
           ).timeout(
             const Duration(seconds: 90),
             onTimeout: () => throw TimeoutException('file picker'),
