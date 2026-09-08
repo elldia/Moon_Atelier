@@ -35,6 +35,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   file_picker: ^12.2.0
+  # Direct dep (otherwise only transitive via file_picker) so we can pass
+  # FilePickerWebOptions(cancelUploadOnWindowBlur: false) — see
+  # library_screen.dart's _pickBook() for why that's necessary on iOS.
+  file_picker_web: ^3.1.0
   epub_view: ^3.3.0
   pdfx: ^2.11.0
   archive: ^3.6.1

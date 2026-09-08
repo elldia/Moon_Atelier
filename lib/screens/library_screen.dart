@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:file_picker_web/file_picker_web.dart' show FilePickerWebOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -107,6 +108,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
           'musicxml',
           'mxl',
         ],
+        // Default true: file_picker arms a 500ms auto-cancel timer the
+        // moment the browser window blurs (which happens as soon as iOS's
+        // native file sheet takes over the screen), completing with null if
+        // the real file-selected event hasn't arrived by then. On iOS,
+        // handing the picked file back to the web view can take longer than
+        // that, so a real selection was being reported as a cancellation —
+        // exactly the "opens the native fine, picks a file, then acts like
+        // nothing was chosen" symptom reported on iPhone Chrome.
+        webOptions: const FilePickerWebOptions(
+          cancelUploadOnWindowBlur: false,
+        ),
       );
       if (file == null) {
         _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
