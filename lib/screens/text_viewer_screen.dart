@@ -70,6 +70,13 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   bool _isSpeaking = false;
   int? _speakingChunkIndex;
 
+  static const _searchMinContentLength = 1000;
+  bool _searchActive = false;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<(int chunkIndex, int start)> _searchMatches = [];
+  int _currentMatchIndex = -1;
+
   int? _selectedChunkIndex;
   TextSelection? _selection;
   Color _pendingHighlightColor = Highlight.defaultColor;
@@ -324,9 +331,72 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     );
   }
 
+  List<int> _matchStartsInChunk(int chunkIndex) => [
+    for (final m in _searchMatches)
+      if (m.$1 == chunkIndex) m.$2,
+  ];
+
+  void _runSearch(String query) {
+    _searchQuery = query;
+    if (query.isEmpty) {
+      setState(() {
+        _searchMatches = [];
+        _currentMatchIndex = -1;
+      });
+      return;
+    }
+    final lowerQuery = query.toLowerCase();
+    final matches = <(int, int)>[];
+    for (var i = 0; i < _chunks.length; i++) {
+      final lowerChunk = _chunks[i].toLowerCase();
+      var start = 0;
+      while (true) {
+        final idx = lowerChunk.indexOf(lowerQuery, start);
+        if (idx < 0) break;
+        matches.add((i, idx));
+        start = idx + lowerQuery.length;
+      }
+    }
+    setState(() {
+      _searchMatches = matches;
+      _currentMatchIndex = matches.isEmpty ? -1 : 0;
+    });
+    if (_currentMatchIndex >= 0) _jumpToMatch(_currentMatchIndex);
+  }
+
+  void _jumpToMatch(int matchIndex) {
+    if (matchIndex < 0 || matchIndex >= _searchMatches.length) return;
+    final (chunkIndex, _) = _searchMatches[matchIndex];
+    if (_chunks.length > 1) _seekToRatio(chunkIndex / (_chunks.length - 1));
+    setState(() => _currentMatchIndex = matchIndex);
+  }
+
+  void _nextMatch() {
+    if (_searchMatches.isEmpty) return;
+    _jumpToMatch((_currentMatchIndex + 1) % _searchMatches.length);
+  }
+
+  void _prevMatch() {
+    if (_searchMatches.isEmpty) return;
+    _jumpToMatch(
+      (_currentMatchIndex - 1 + _searchMatches.length) % _searchMatches.length,
+    );
+  }
+
+  void _closeSearch() {
+    setState(() {
+      _searchActive = false;
+      _searchQuery = '';
+      _searchMatches = [];
+      _currentMatchIndex = -1;
+      _searchController.clear();
+    });
+  }
+
   @override
   void dispose() {
     if (_isSpeaking) TtsReader.instance.stop();
+    _searchController.dispose();
     _saveDebounce?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -358,9 +428,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
             if (v == 'bookmark') _addBookmark();
             if (v == 'saved') _openSavedItems();
             if (v == 'settings') showReadingSettingsSheet(context);
-            if (v == 'home') {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            }
+            if (v == 'search') setState(() => _searchActive = true);
           },
           itemBuilder: (context) => [
             PopupMenuItem(
@@ -376,7 +444,8 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
               value: 'settings',
               child: Text(tr('reading_settings')),
             ),
-            PopupMenuItem(value: 'home', child: Text(tr('home'))),
+            if (widget.content.length >= _searchMinContentLength)
+              PopupMenuItem(value: 'search', child: Text(tr('search'))),
           ],
         ),
       ];
@@ -405,34 +474,57 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         icon: const Icon(Icons.tune),
         onPressed: () => showReadingSettingsSheet(context),
       ),
-      IconButton(
-        tooltip: tr('home'),
-        icon: const Icon(Icons.home_outlined),
-        onPressed: () =>
-            Navigator.of(context).popUntil((route) => route.isFirst),
-      ),
+      if (widget.content.length >= _searchMinContentLength)
+        IconButton(
+          tooltip: tr('search'),
+          icon: const Icon(Icons.search),
+          onPressed: () => setState(() => _searchActive = true),
+        ),
     ];
   }
 
   Widget _buildChunk(int index, String chunk, ReadingSettings settings) {
-    final highlights = List<Highlight>.of(_highlightsByChunk[index] ?? const [])
-      ..sort((a, b) => a.start.compareTo(b.start));
+    // Merge saved highlights and (if a search is active) match ranges into
+    // one sorted, non-overlapping decoration list so both render correctly
+    // together instead of needing two separate splitting passes.
+    final decorations = <(int start, int end, TextStyle style)>[
+      for (final h in _highlightsByChunk[index] ?? const <Highlight>[])
+        if (h.end.clamp(0, chunk.length) > h.start.clamp(0, chunk.length))
+          (
+            h.start.clamp(0, chunk.length),
+            h.end.clamp(0, chunk.length),
+            TextStyle(backgroundColor: h.color),
+          ),
+      if (_searchQuery.isNotEmpty)
+        for (final start in _matchStartsInChunk(index))
+          if ((start + _searchQuery.length).clamp(0, chunk.length) > start)
+            (
+              start,
+              (start + _searchQuery.length).clamp(0, chunk.length),
+              TextStyle(
+                backgroundColor:
+                    _searchMatches.isNotEmpty &&
+                        _currentMatchIndex >= 0 &&
+                        _searchMatches[_currentMatchIndex] == (index, start)
+                    ? const Color(0xCCFF9800)
+                    : const Color(0x66FF9800),
+              ),
+            ),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
 
     final spans = <InlineSpan>[
       if (settings.paragraphIndent > 0)
         WidgetSpan(child: SizedBox(width: settings.paragraphIndent)),
     ];
     var cursor = 0;
-    for (final h in highlights) {
-      final start = h.start.clamp(0, chunk.length);
-      final end = h.end.clamp(0, chunk.length);
+    for (final (start, end, style) in decorations) {
       if (end <= cursor) continue;
       if (start > cursor)
         spans.add(TextSpan(text: chunk.substring(cursor, start)));
       spans.add(
         TextSpan(
           text: chunk.substring(start.clamp(cursor, chunk.length), end),
-          style: TextStyle(backgroundColor: h.color),
+          style: style,
         ),
       );
       cursor = end;
@@ -459,13 +551,58 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
           appBar: _uiVisible
               ? glassAppBar(
                   context,
-                  title: Text(widget.title, overflow: TextOverflow.ellipsis),
+                  title: _searchActive
+                      ? TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: tr('content_search_hint'),
+                            border: InputBorder.none,
+                          ),
+                          onChanged: _runSearch,
+                        )
+                      : Text(widget.title, overflow: TextOverflow.ellipsis),
                   leading: IconButton(
                     tooltip: tr('back'),
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
-                  actions: _buildAppBarActions(settings),
+                  actions: _searchActive
+                      ? [
+                          if (_searchQuery.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _searchMatches.isEmpty
+                                      ? '0/0'
+                                      : '${_currentMatchIndex + 1}/${_searchMatches.length}',
+                                ),
+                              ),
+                            ),
+                          IconButton(
+                            tooltip: tr('search_prev'),
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                            onPressed: _searchMatches.isEmpty
+                                ? null
+                                : _prevMatch,
+                          ),
+                          IconButton(
+                            tooltip: tr('search_next'),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            onPressed: _searchMatches.isEmpty
+                                ? null
+                                : _nextMatch,
+                          ),
+                          IconButton(
+                            tooltip: tr('close_search'),
+                            icon: const Icon(Icons.close),
+                            onPressed: _closeSearch,
+                          ),
+                        ]
+                      : _buildAppBarActions(settings),
                 )
               : null,
           body: Listener(
