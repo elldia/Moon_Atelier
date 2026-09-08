@@ -43,6 +43,16 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late final PdfControllerPinch _pdfController;
   Timer? _saveDebounce;
 
+  // pdfx computes the "current page" from whichever page occupies the most
+  // viewport area, which is unreliable right after a large animateToPage
+  // jump — most visibly, jumping to the very last page: the content renders
+  // correctly, but pagesCount's "most visible" calculation can still report
+  // a much earlier page, so the top label and seek bar disagree with what's
+  // on screen. Track where we last explicitly jumped to and prefer that
+  // until pdfx's own listenable actually reports a (different) value —
+  // i.e. until the user scrolls for real.
+  int? _pendingJumpPage;
+
   @override
   void initState() {
     super.initState();
@@ -57,9 +67,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   void _onPageChanged() {
+    // Don't clear _pendingJumpPage here — pdfx's own listenable can fire
+    // with an incorrect value right after a large programmatic jump (not
+    // just a stale one), so trusting "any change" would immediately
+    // overwrite our override with the wrong number again. Only a genuine
+    // user drag/pinch (onInteractionStart, below) should hand control back.
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 800), () {
-      final page = _pdfController.pageListenable.value;
+      final page = _pendingJumpPage ?? _pdfController.pageListenable.value;
       widget.onPositionChanged?.call(page);
       final pagesCount = _pdfController.pagesCount;
       if (pagesCount != null && pagesCount > 0) {
@@ -77,7 +92,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   Future<void> _addBookmark() async {
-    final page = _pdfController.pageListenable.value;
+    final page = _pendingJumpPage ?? _pdfController.pageListenable.value;
     final bookmark = Bookmark(
       id: _uuid.v4(),
       bookId: widget.bookId,
@@ -103,24 +118,26 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     );
     if (result == null || !mounted) return;
     final page = result.position;
-    if (page is int) {
-      _pdfController.animateToPage(
-        pageNumber: page,
-        duration: Duration.zero,
-        curve: Curves.linear,
-      );
-    }
+    if (page is int) _jumpToPage(page, duration: Duration.zero);
   }
 
   void _seekToRatio(double ratio) {
     final pagesCount = _pdfController.pagesCount;
     if (pagesCount == null || pagesCount <= 0) return;
-    _pdfController.animateToPage(
-      pageNumber: (ratio.clamp(0.0, 1.0) * pagesCount).round().clamp(
-        1,
-        pagesCount,
-      ),
+    _jumpToPage(
+      (ratio.clamp(0.0, 1.0) * pagesCount).round(),
       duration: Duration.zero,
+    );
+  }
+
+  void _jumpToPage(int target, {Duration? duration}) {
+    final pagesCount = _pdfController.pagesCount;
+    if (pagesCount == null || pagesCount <= 0) return;
+    final clamped = target.clamp(1, pagesCount);
+    setState(() => _pendingJumpPage = clamped);
+    _pdfController.animateToPage(
+      pageNumber: clamped,
+      duration: duration ?? const Duration(milliseconds: 150),
       curve: Curves.linear,
     );
   }
@@ -141,7 +158,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         final settings = ReadingSettingsController.instance.value;
         final narrow = MediaQuery.of(context).size.width < 420;
         final pagesCount = _pdfController.pagesCount;
-        final page = _pdfController.pageListenable.value;
+        final page = _pendingJumpPage ?? _pdfController.pageListenable.value;
         final showBar =
             settings.showProgress && pagesCount != null && pagesCount > 1;
 
@@ -214,6 +231,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
           body: PdfViewPinch(
             controller: _pdfController,
+            // A real drag/pinch means the user has taken over navigation —
+            // hand display control back from _pendingJumpPage to pdfx's own
+            // (now-trustworthy, since it's tracking a live gesture) value.
+            onInteractionStart: (_) {
+              if (_pendingJumpPage != null) {
+                setState(() => _pendingJumpPage = null);
+              }
+            },
             builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
               options: const DefaultBuilderOptions(),
               documentLoaderBuilder: (context) =>
@@ -253,23 +278,60 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           bottomNavigationBar: showBar
               ? SafeArea(
                   child: SizedBox(
-                    height: 32,
+                    height: 36,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 2,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 7,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 6,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 14,
+                                ),
+                              ),
+                              child: Slider(
+                                value: (page / pagesCount).clamp(0.0, 1.0),
+                                onChanged: _seekToRatio,
+                              ),
+                            ),
                           ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14,
-                          ),
-                        ),
-                        child: Slider(
-                          value: (page / pagesCount).clamp(0.0, 1.0),
-                          onChanged: _seekToRatio,
-                        ),
+                          if (pagesCount >= 100)
+                            Expanded(
+                              flex: 3,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _JumpButton(
+                                    tooltip: tr('jump_first'),
+                                    icon: Icons.first_page,
+                                    onPressed: () => _jumpToPage(1),
+                                  ),
+                                  _JumpButton(
+                                    tooltip: tr('jump_back10'),
+                                    icon: Icons.replay_10,
+                                    onPressed: () => _jumpToPage(page - 10),
+                                  ),
+                                  _JumpButton(
+                                    tooltip: tr('jump_forward10'),
+                                    icon: Icons.forward_10,
+                                    onPressed: () => _jumpToPage(page + 10),
+                                  ),
+                                  _JumpButton(
+                                    tooltip: tr('jump_last'),
+                                    icon: Icons.last_page,
+                                    onPressed: () => _jumpToPage(pagesCount),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -277,6 +339,34 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               : null,
         );
       },
+    );
+  }
+}
+
+/// A compact icon button for the page-jump row, sized to fit four of them
+/// in the ~30% width share it's given next to the seek bar while staying
+/// individually tappable on mobile.
+class _JumpButton extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _JumpButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      icon: Icon(icon),
+      iconSize: 18,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      visualDensity: VisualDensity.compact,
+      onPressed: onPressed,
     );
   }
 }

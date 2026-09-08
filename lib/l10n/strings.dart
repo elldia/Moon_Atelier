@@ -240,6 +240,10 @@ const _dict = <String, List<String>>{
     '打开乐谱时发生错误: {error}',
   ],
   'page_n': ['{n}페이지', 'Page {n}', '{n}ページ', '第{n}页'],
+  'jump_first': ['처음으로', 'First page', '最初のページ', '首页'],
+  'jump_back10': ['10페이지 뒤로', 'Back 10 pages', '10ページ戻る', '后退10页'],
+  'jump_forward10': ['10페이지 앞으로', 'Forward 10 pages', '10ページ進む', '前进10页'],
+  'jump_last': ['끝으로', 'Last page', '最後のページ', '末页'],
   'empty_document': ['(빈 문서)', '(empty document)', '(空の文書)', '(空文档)'],
   'empty_paragraph': ['(빈 문단)', '(empty paragraph)', '(空の段落)', '(空段落)'],
   'content_not_found': [
