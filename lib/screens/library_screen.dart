@@ -17,6 +17,7 @@ import '../utils/docx_text_extractor.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/musicxml_extractor.dart';
 import '../utils/rtf_text_extractor.dart';
+import '../utils/text_decoder.dart';
 import '../utils/zip_book_extractor.dart';
 import '../widgets/coffee_dialog.dart';
 import '../widgets/file_source_dialog.dart';
@@ -579,7 +580,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => TextViewerScreen(
               bookId: book.id,
               title: book.name,
-              content: utf8.decode(book.bytes, allowMalformed: true),
+              content: decodeTextBytes(book.bytes),
               initialOffset: (book.position as num?)?.toDouble(),
               onPositionChanged: (offset) {
                 current = current.copyWith(position: offset);
@@ -696,7 +697,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (progress == null) return null;
     final percent = (progress * 100).round();
     if (book.format == BookFormat.txt) {
-      final total = utf8.decode(book.bytes, allowMalformed: true).length;
+      final total = decodeTextBytes(book.bytes).length;
       final current = (progress * total).round();
       return tr('char_progress', {
         'current': _formatCount(current),
@@ -939,7 +940,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             : tr('folder_empty'),
                       ),
                       const SizedBox(height: 8),
-                      Text(tr('supported_formats_hint')),
+                      Text(
+                        tr('supported_formats_hint'),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 )
