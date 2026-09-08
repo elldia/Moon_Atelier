@@ -10,6 +10,7 @@ import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
 import '../widgets/glass.dart';
+import '../widgets/page_jump_row.dart';
 import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
@@ -304,31 +305,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                           if (pagesCount >= 100)
                             Expanded(
                               flex: 3,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _JumpButton(
-                                    tooltip: tr('jump_first'),
-                                    icon: Icons.first_page,
-                                    onPressed: () => _jumpToPage(1),
-                                  ),
-                                  _JumpButton(
-                                    tooltip: tr('jump_back10'),
-                                    icon: Icons.replay_10,
-                                    onPressed: () => _jumpToPage(page - 10),
-                                  ),
-                                  _JumpButton(
-                                    tooltip: tr('jump_forward10'),
-                                    icon: Icons.forward_10,
-                                    onPressed: () => _jumpToPage(page + 10),
-                                  ),
-                                  _JumpButton(
-                                    tooltip: tr('jump_last'),
-                                    icon: Icons.last_page,
-                                    onPressed: () => _jumpToPage(pagesCount),
-                                  ),
-                                ],
+                              child: PageJumpRow(
+                                onFirst: () => _jumpToPage(1),
+                                onBack10: () => _jumpToPage(page - 10),
+                                onForward10: () => _jumpToPage(page + 10),
+                                onLast: () => _jumpToPage(pagesCount),
                               ),
                             ),
                         ],
@@ -339,34 +320,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               : null,
         );
       },
-    );
-  }
-}
-
-/// A compact icon button for the page-jump row, sized to fit four of them
-/// in the ~30% width share it's given next to the seek bar while staying
-/// individually tappable on mobile.
-class _JumpButton extends StatelessWidget {
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _JumpButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      icon: Icon(icon),
-      iconSize: 18,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-      visualDensity: VisualDensity.compact,
-      onPressed: onPressed,
     );
   }
 }

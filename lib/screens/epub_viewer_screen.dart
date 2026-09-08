@@ -10,6 +10,7 @@ import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
 import '../widgets/glass.dart';
+import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
 
@@ -91,6 +92,16 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
     );
   }
 
+  // EPUB has no literal "page" either — paragraph index (the same unit
+  // _seekToRatio/the progress bar already use) stands in for it, with
+  // roughly 10 paragraphs treated as one "page" so "10 pages" reads as a
+  // reasonably chapter-scale jump rather than an imperceptible one.
+  void _jumpByParagraphs(int delta) {
+    final total = _approxTotalParagraphs();
+    final currentIndex = _epubController.currentValue?.position.index ?? 0;
+    _epubController.jumpTo(index: (currentIndex + delta).clamp(0, total));
+  }
+
   @override
   void dispose() {
     _saveDebounce?.cancel();
@@ -140,7 +151,16 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: ReadingSettingsController.instance,
+      // _approxTotalParagraphs() (and so the 100+"page" jump row's
+      // visibility) depends on the table of contents, which isn't
+      // necessarily populated yet on the very first build — merging in
+      // currentValueListenable makes that recheck itself on every position
+      // update instead of being frozen at whatever it evaluated to before
+      // the book finished loading.
+      animation: Listenable.merge([
+        ReadingSettingsController.instance,
+        _epubController.currentValueListenable,
+      ]),
       builder: (context, _) {
         final settings = ReadingSettingsController.instance.value;
         final narrow = MediaQuery.of(context).size.width < 480;
@@ -269,26 +289,45 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
           bottomNavigationBar: settings.showProgress
               ? SafeArea(
                   child: SizedBox(
-                    height: 32,
+                    height: 36,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: ValueListenableBuilder<double>(
-                        valueListenable: _progressNotifier,
-                        builder: (context, progress, _) => SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 2,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 14,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 7,
+                            child: ValueListenableBuilder<double>(
+                              valueListenable: _progressNotifier,
+                              builder: (context, progress, _) => SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 14,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: progress.clamp(0.0, 1.0),
+                                  onChanged: _seekToRatio,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Slider(
-                            value: progress.clamp(0.0, 1.0),
-                            onChanged: _seekToRatio,
-                          ),
-                        ),
+                          if (_approxTotalParagraphs() >= 1000)
+                            Expanded(
+                              flex: 3,
+                              child: PageJumpRow(
+                                onFirst: () => _epubController.jumpTo(index: 0),
+                                onBack10: () => _jumpByParagraphs(-100),
+                                onForward10: () => _jumpByParagraphs(100),
+                                onLast: () => _epubController.jumpTo(
+                                  index: _approxTotalParagraphs(),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

@@ -11,6 +11,7 @@ import '../models/highlight.dart';
 import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
 import '../widgets/glass.dart';
+import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
 
@@ -220,6 +221,17 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     _scrollController.jumpTo(
       ratio.clamp(0.0, 1.0) * _scrollController.position.maxScrollExtent,
     );
+  }
+
+  // TXT/DOCX/RTF have no literal "page" concept — chunks (already shown in
+  // the app bar as "current / total", the same paging-like indicator PDF
+  // uses) stand in for pages here, so "10 pages" means 10 chunks.
+  void _jumpByChunks(int delta) {
+    if (_chunks.length <= 1) return;
+    final currentChunk = (_progressNotifier.value * (_chunks.length - 1))
+        .round();
+    final target = (currentChunk + delta).clamp(0, _chunks.length - 1);
+    _seekToRatio(target / (_chunks.length - 1));
   }
 
   Future<void> _openSavedItems() async {
@@ -497,26 +509,43 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
           bottomNavigationBar: settings.showProgress && _chunks.length > 1
               ? SafeArea(
                   child: SizedBox(
-                    height: 32,
+                    height: 36,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: ValueListenableBuilder<double>(
-                        valueListenable: _progressNotifier,
-                        builder: (context, progress, _) => SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 2,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 14,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 7,
+                            child: ValueListenableBuilder<double>(
+                              valueListenable: _progressNotifier,
+                              builder: (context, progress, _) => SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 14,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: progress.clamp(0.0, 1.0),
+                                  onChanged: _seekToRatio,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Slider(
-                            value: progress.clamp(0.0, 1.0),
-                            onChanged: _seekToRatio,
-                          ),
-                        ),
+                          if (_chunks.length >= 100)
+                            Expanded(
+                              flex: 3,
+                              child: PageJumpRow(
+                                onFirst: () => _seekToRatio(0),
+                                onBack10: () => _jumpByChunks(-10),
+                                onForward10: () => _jumpByChunks(10),
+                                onLast: () => _seekToRatio(1),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
