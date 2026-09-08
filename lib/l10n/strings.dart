@@ -1,0 +1,508 @@
+import '../data/reading_settings_controller.dart';
+import '../models/reading_settings.dart';
+
+/// Minimal hand-rolled i18n: every UI string keyed once, translated to
+/// Korean/English/Japanese/Chinese in that fixed order (matching
+/// [AppLocale]'s declaration order, so `AppLocale.index` indexes straight
+/// into it). `{name}`-style placeholders are substituted from [params].
+String tr(String key, [Map<String, String>? params]) {
+  final entry = _dict[key];
+  var text = entry == null
+      ? key
+      : entry[ReadingSettingsController.instance.value.locale.index];
+  if (params != null) {
+    for (final e in params.entries) {
+      text = text.replaceAll('{${e.key}}', e.value);
+    }
+  }
+  return text;
+}
+
+const _dict = <String, List<String>>{
+  // Common
+  'cancel': ['취소', 'Cancel', 'キャンセル', '取消'],
+  'delete': ['삭제', 'Delete', '削除', '删除'],
+  'create': ['생성', 'Create', '作成', '创建'],
+  'apply': ['적용', 'Apply', '適用', '应用'],
+  'close': ['닫기', 'Close', '閉じる', '关闭'],
+  'back': ['뒤로', 'Back', '戻る', '返回'],
+  'home': ['홈으로', 'Home', 'ホームへ', '主页'],
+  'search': ['검색', 'Search', '検索', '搜索'],
+  'sort': ['정렬', 'Sort', '並び替え', '排序'],
+
+  // Library screen
+  'library_title': ['내 서재', 'My Library', 'マイライブラリ', '我的书房'],
+  'add': ['추가', 'Add', '追加', '添加'],
+  'file_register': ['파일 등록', 'Add File', 'ファイル登録', '添加文件'],
+  'folder_create': ['폴더 생성', 'New Folder', 'フォルダ作成', '新建文件夹'],
+  'new_folder_title': ['새 폴더', 'New Folder', '新しいフォルダ', '新建文件夹'],
+  'folder_name_hint': ['폴더 이름', 'Folder name', 'フォルダ名', '文件夹名称'],
+  'delete_folder_confirm_title': [
+    '폴더를 삭제하시겠습니까?',
+    'Delete this folder?',
+    'このフォルダを削除しますか?',
+    '要删除此文件夹吗?',
+  ],
+  'delete_folder_confirm_body': [
+    '"{name}" 폴더를 삭제합니다. 안의 파일은 서재 루트로 이동합니다.',
+    'This deletes the folder "{name}". Files inside will move to the library root.',
+    '「{name}」フォルダを削除します。中のファイルはライブラリのルートに移動します。',
+    '将删除文件夹"{name}"。其中的文件将移动到书房根目录。',
+  ],
+  'move_to_folder': ['폴더로 이동', 'Move to folder', 'フォルダへ移動', '移动到文件夹'],
+  'no_folder_root': [
+    '폴더 없음 (루트)',
+    'No folder (root)',
+    'フォルダなし(ルート)',
+    '无文件夹(根目录)',
+  ],
+  'unsupported_format': [
+    '지원하지 않는 파일 형식입니다.',
+    'Unsupported file format.',
+    'サポートされていないファイル形式です。',
+    '不支持的文件格式。',
+  ],
+  'clipboard_empty': [
+    '클립보드에 텍스트가 없습니다.',
+    'Clipboard has no text.',
+    'クリップボードにテキストがありません。',
+    '剪贴板中没有文本。',
+  ],
+  'clipboard_text_name': [
+    '클립보드 텍스트 {ts}.txt',
+    'Clipboard text {ts}.txt',
+    'クリップボードテキスト {ts}.txt',
+    '剪贴板文本 {ts}.txt',
+  ],
+  'import_not_ready': [
+    '아직 지원하지 않는 가져오기 방식입니다. 준비 중이에요.',
+    "This import method isn't available yet. Coming soon.",
+    'この取り込み方法はまだ利用できません。準備中です。',
+    '此导入方式暂不支持,敬请期待。',
+  ],
+  'delete_book_confirm_title': [
+    '삭제하시겠습니까?',
+    'Delete this?',
+    '削除しますか?',
+    '要删除吗?',
+  ],
+  'delete_book_confirm_body': [
+    '"{name}"을(를) 서재에서 삭제합니다.',
+    'This removes "{name}" from your library.',
+    '「{name}」をライブラリから削除します。',
+    '将从书房中删除"{name}"。',
+  ],
+  'delete_selected_confirm_title': [
+    '선택 항목을 삭제하시겠습니까?',
+    'Delete the selected items?',
+    '選択した項目を削除しますか?',
+    '要删除所选项目吗?',
+  ],
+  'delete_selected_folders_part': [
+    '폴더 {n}개(안의 파일은 루트로 이동)',
+    '{n} folder(s) (files inside move to root)',
+    'フォルダ{n}個(中のファイルはルートへ移動)',
+    '{n}个文件夹(内部文件将移至根目录)',
+  ],
+  'delete_selected_books_part': [
+    '파일 {n}개',
+    '{n} file(s)',
+    'ファイル{n}個',
+    '{n}个文件',
+  ],
+  'delete_selected_suffix': [
+    '를 삭제합니다.',
+    ' will be deleted.',
+    'を削除します。',
+    '将被删除。',
+  ],
+  'open_error': [
+    '{format}를 여는 중 오류가 발생했습니다: {error}',
+    'An error occurred opening the {format}: {error}',
+    '{format}を開く際にエラーが発生しました: {error}',
+    '打开{format}时发生错误: {error}',
+  ],
+  'select_delete': ['선택 삭제', 'Select & Delete', '選択削除', '选择删除'],
+  'close_search': ['검색 닫기', 'Close search', '検索を閉じる', '关闭搜索'],
+  'search_hint': ['이름으로 검색', 'Search by name', '名前で検索', '按名称搜索'],
+  'reading_settings': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
+  'cancel_selection': ['선택 취소', 'Cancel selection', '選択解除', '取消选择'],
+  'selected_count': ['{n}개 선택됨', '{n} selected', '{n}件選択中', '已选择{n}项'],
+  'no_search_results': [
+    '검색 결과가 없습니다.',
+    'No results found.',
+    '検索結果がありません。',
+    '未找到搜索结果。',
+  ],
+  'no_files_yet': [
+    '아직 추가된 파일이 없습니다.',
+    'No files added yet.',
+    'まだファイルが追加されていません。',
+    '尚未添加任何文件。',
+  ],
+  'folder_empty': [
+    '이 폴더에 파일이 없습니다.',
+    'This folder is empty.',
+    'このフォルダにファイルがありません。',
+    '此文件夹为空。',
+  ],
+  'supported_formats_hint': [
+    'EPUB, PDF, TXT, DOCX, RTF, MusicXML 파일을 열 수 있어요.',
+    'You can open EPUB, PDF, TXT, DOCX, RTF, and MusicXML files.',
+    'EPUB、PDF、TXT、DOCX、RTF、MusicXMLファイルを開けます。',
+    '可以打开EPUB、PDF、TXT、DOCX、RTF、MusicXML文件。',
+  ],
+  'file_count': ['{n}개 파일', '{n} files', '{n}個のファイル', '{n}个文件'],
+  'delete_folder': ['폴더 삭제', 'Delete folder', 'フォルダ削除', '删除文件夹'],
+  'large_file_delay_hint': [
+    '글자수가 많은 텍스트파일은 첫 실행 시 지연시간이 생길 수 있습니다.',
+    'Very large text files may take a moment to load the first time.',
+    '文字数の多いテキストファイルは初回読み込みに時間がかかることがあります。',
+    '字数较多的文本文件首次打开时可能需要一些加载时间。',
+  ],
+  'rename': ['이름 바꾸기', 'Rename', '名前を変更', '重命名'],
+  'file_name_hint': ['파일 이름', 'File name', 'ファイル名', '文件名'],
+  'show_format_icon_title': [
+    '형식 아이콘 표시',
+    'Show Format Icon',
+    'ファイル形式アイコンを表示',
+    '显示格式图标',
+  ],
+  'show_format_icon_desc': [
+    '목록에서 제목 앞에 TXT·EPUB 등 형식 아이콘을 표시합니다',
+    'Shows a TXT/EPUB/etc. icon before each title in the list',
+    'リストのタイトルの前にTXT・EPUBなどの形式アイコンを表示します',
+    '在列表标题前显示TXT·EPUB等格式图标',
+  ],
+  'coffee_title': [
+    '커피 한 잔 어떠세요? ☕',
+    'Buy me a coffee? ☕',
+    'コーヒーを一杯いかがですか? ☕',
+    '请开发者喝杯咖啡? ☕',
+  ],
+  'coffee_body': [
+    '이 앱을 즐겁게 쓰고 계신다면, 개발자에게 커피 한 잔 값의 응원을 보내보는 건 어때요?\n큰 힘이 됩니다 :)',
+    "If you're enjoying this app, consider treating the developer to a coffee.\nIt means a lot :)",
+    'このアプリを楽しく使っていただけているなら、開発者にコーヒー一杯分の応援を送ってみませんか?\nとても励みになります :)',
+    '如果您喜欢这个应用,不妨请开发者喝杯咖啡表示支持吧。\n这对我意义重大 :)',
+  ],
+  'coffee_thanks': [
+    '따뜻한 마음만으로도 감사해요!',
+    'Thanks for the kind thought either way!',
+    'お気持ちだけでも嬉しいです!',
+    '心意已经让我很感激了!',
+  ],
+  'char_progress': [
+    '{current} / {total}자 · {percent}%',
+    '{current} / {total} chars · {percent}%',
+    '{current} / {total}文字 · {percent}%',
+    '{current} / {total}字 · {percent}%',
+  ],
+
+  // Readers (text/epub/pdf)
+  'bookmark_added': [
+    '북마크에 추가했습니다.',
+    'Added to bookmarks.',
+    'ブックマークに追加しました。',
+    '已添加到书签。',
+  ],
+  'toc': ['목차', 'Contents', '目次', '目录'],
+  'bookmark_add': ['북마크 추가', 'Add Bookmark', 'ブックマーク追加', '添加书签'],
+  'bookmark_list': ['북마크 목록', 'Bookmarks', 'ブックマーク一覧', '书签列表'],
+  'bookmark_saved_list': [
+    '북마크 · 저장한 글귀',
+    'Bookmarks & Quotes',
+    'ブックマーク・保存した引用',
+    '书签 · 收藏的语句',
+  ],
+  'epub_open_error': [
+    'EPUB을 여는 중 오류가 발생했습니다: {error}',
+    'An error occurred opening the EPUB: {error}',
+    'EPUBを開く際にエラーが発生しました: {error}',
+    '打开EPUB时发生错误: {error}',
+  ],
+  'pdf_open_error': [
+    'PDF를 여는 중 오류가 발생했습니다: {error}',
+    'An error occurred opening the PDF: {error}',
+    'PDFを開く際にエラーが発生しました: {error}',
+    '打开PDF时发生错误: {error}',
+  ],
+  'musicxml_open_error': [
+    '악보를 여는 중 오류가 발생했습니다: {error}',
+    'An error occurred opening the score: {error}',
+    '楽譜を開く際にエラーが発生しました: {error}',
+    '打开乐谱时发生错误: {error}',
+  ],
+  'page_n': ['{n}페이지', 'Page {n}', '{n}ページ', '第{n}页'],
+  'empty_document': ['(빈 문서)', '(empty document)', '(空の文書)', '(空文档)'],
+  'empty_paragraph': ['(빈 문단)', '(empty paragraph)', '(空の段落)', '(空段落)'],
+  'content_not_found': [
+    '내용을 찾을 수 없습니다.',
+    'No content found.',
+    'コンテンツが見つかりません。',
+    '未找到内容。',
+  ],
+  'save_selection_prompt': [
+    '선택한 문장을 저장할까요?',
+    'Save the selected text?',
+    '選択したテキストを保存しますか?',
+    '要保存所选文本吗?',
+  ],
+  'save_as_highlight': [
+    '형광펜으로 저장',
+    'Save as Highlight',
+    'ハイライトとして保存',
+    '保存为高亮',
+  ],
+
+  // Saved items screen
+  'no_bookmarks': [
+    '저장된 북마크가 없습니다.',
+    'No bookmarks saved yet.',
+    '保存されたブックマークがありません。',
+    '尚未保存任何书签。',
+  ],
+  'bookmarks_count': [
+    '북마크 ({n})',
+    'Bookmarks ({n})',
+    'ブックマーク ({n})',
+    '书签 ({n})',
+  ],
+  'quotes_count': [
+    '저장한 글귀 ({n})',
+    'Saved Quotes ({n})',
+    '保存した引用 ({n})',
+    '收藏的语句 ({n})',
+  ],
+  'no_quotes': [
+    '저장된 글귀가 없습니다.\n글을 읽다가 문장을 드래그해 보세요.',
+    'No saved quotes yet.\nTry dragging to select text while reading.',
+    '保存した引用がありません。\n読書中にテキストをドラッグして選択してみてください。',
+    '尚未收藏任何语句。\n阅读时试着拖动选中文本吧。',
+  ],
+
+  // docx extractor
+  'docx_missing_document_xml': [
+    'word/document.xml를 찾을 수 없습니다. 올바른 .docx 파일인지 확인해 주세요.',
+    'Could not find word/document.xml. Please check that this is a valid .docx file.',
+    'word/document.xmlが見つかりません。正しい.docxファイルか確認してください。',
+    '未找到word/document.xml。请确认这是有效的.docx文件。',
+  ],
+
+  // File source dialog
+  'import_title': ['파일 가져오기', 'Import File', 'ファイルを取り込む', '导入文件'],
+  'source_local': [
+    '내 컴퓨터에서 선택',
+    'Choose from this device',
+    'このデバイスから選択',
+    '从本设备选择',
+  ],
+  'source_clipboard': [
+    '클립보드에서 붙여넣기',
+    'Paste from clipboard',
+    'クリップボードから貼り付け',
+    '从剪贴板粘贴',
+  ],
+  'source_onedrive': ['원드라이브', 'OneDrive', 'OneDrive', 'OneDrive'],
+  'source_dropbox': ['Dropbox', 'Dropbox', 'Dropbox', 'Dropbox'],
+  'source_cloudapp': ['클라우드 앱', 'Cloud App', 'クラウドアプリ', '云应用'],
+  'source_wifi': ['와이파이 전송', 'Wi-Fi Transfer', 'Wi-Fi転送', 'Wi-Fi传输'],
+  'source_ftp': ['FTP', 'FTP', 'FTP', 'FTP'],
+  'coming_soon': ['준비 중', 'Coming soon', '準備中', '敬请期待'],
+
+  // Onboarding
+  'onboarding_title': ['ebk 사용법', 'How to use ebk', 'ebkの使い方', 'ebk使用指南'],
+  'onb_add_title': [
+    '오른쪽 아래 + 버튼',
+    'Bottom-right + button',
+    '右下の + ボタン',
+    '右下角的 + 按钮',
+  ],
+  'onb_add_desc': [
+    '파일 등록(로컬/클립보드 등) 또는 폴더 생성',
+    'Add a file (local/clipboard/etc.) or create a folder',
+    'ファイル登録(ローカル/クリップボードなど)またはフォルダ作成',
+    '添加文件(本地/剪贴板等)或新建文件夹',
+  ],
+  'onb_folder_title': ['폴더', 'Folders', 'フォルダ', '文件夹'],
+  'onb_folder_desc': [
+    '탭해서 들어가고, 각 파일의 ⋮ 메뉴로 폴더 이동/삭제',
+    "Tap to open; use each file's ⋮ menu to move or delete it",
+    'タップして開き、各ファイルの ⋮ メニューで移動・削除',
+    '点击进入,通过每个文件的 ⋮ 菜单移动/删除',
+  ],
+  'onb_search_title': ['검색 아이콘', 'Search icon', '検索アイコン', '搜索图标'],
+  'onb_search_desc': [
+    '서재 안의 파일과 폴더 이름으로 찾기',
+    'Find files and folders by name',
+    'ライブラリ内のファイルとフォルダを名前で検索',
+    '按名称查找书房中的文件和文件夹',
+  ],
+  'onb_sort_title': ['정렬 아이콘', 'Sort icon', '並び替えアイコン', '排序图标'],
+  'onb_sort_desc': [
+    '이름순·등록순·최근 읽은 순 등으로 목록 정렬',
+    'Sort by name, date added, recently read, and more',
+    '名前順・登録順・最近読んだ順などで並び替え',
+    '按名称、添加日期、最近阅读等方式排序',
+  ],
+  'onb_trash_title': ['휴지통 아이콘', 'Trash icon', 'ゴミ箱アイコン', '垃圾桶图标'],
+  'onb_trash_desc': [
+    '여러 파일을 한 번에 선택해서 삭제',
+    'Select multiple files to delete at once',
+    '複数のファイルをまとめて選択して削除',
+    '一次选择多个文件进行删除',
+  ],
+  'onb_settings_title': [
+    '읽기 설정(톱니)',
+    'Reading settings (gear)',
+    '読書設定(歯車)',
+    '阅读设置(齿轮)',
+  ],
+  'onb_settings_desc': [
+    '글꼴·크기·배경·다크모드 등, 읽는 중에도 언제든 변경',
+    'Font, size, background, dark mode and more — change anytime, even while reading',
+    'フォント・サイズ・背景・ダークモードなど、読書中でもいつでも変更可能',
+    '字体・大小・背景・深色模式等,阅读中也可随时更改',
+  ],
+  'onb_highlight_title': [
+    '읽는 중 문장 드래그',
+    'Drag text while reading',
+    '読書中にテキストをドラッグ',
+    '阅读中拖动选择文本',
+  ],
+  'onb_highlight_desc': [
+    '형광펜 색을 골라 자주 찾는 글귀로 저장',
+    'Pick a highlighter color and save it as a favorite quote',
+    'ハイライトの色を選んでお気に入りの引用として保存',
+    '选择高亮颜色,保存为常用语句',
+  ],
+  'onb_bookmark_title': ['북마크 추가', 'Add a bookmark', 'ブックマーク追加', '添加书签'],
+  'onb_bookmark_desc': [
+    '지금 위치를 저장해두고 목록에서 바로 이동',
+    'Save your current spot and jump back to it from the list',
+    '現在の位置を保存し、リストからすぐ移動',
+    '保存当前位置,可从列表直接跳转',
+  ],
+
+  // Reading settings dialog
+  'reading_settings_title': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
+  'reset_defaults': [
+    '기본값으로',
+    'Reset to defaults',
+    'デフォルトに戻す',
+    '恢复默认设置',
+  ],
+  'display_mode': ['화면 모드', 'Display Mode', '表示モード', '显示模式'],
+  'reading_progress_section': [
+    '읽기 진행률',
+    'Reading Progress',
+    '読書の進捗',
+    '阅读进度',
+  ],
+  'show_progress_title': ['진행 페이지 표시', 'Show progress', '進捗を表示', '显示进度'],
+  'show_progress_desc': [
+    '리더 화면 상단에 현재 위치 / 전체 분량을 표시합니다',
+    'Shows current position / total length at the top of the reader',
+    'リーダー画面の上部に現在位置 / 全体を表示します',
+    '在阅读器顶部显示当前位置 / 总长度',
+  ],
+  'background_color': ['배경색', 'Background Color', '背景色', '背景色'],
+  'font_section': ['글꼴', 'Font', 'フォント', '字体'],
+  'font_delay_hint': [
+    '글자수가 많은 텍스트파일에선 변경 속도가 5초 이상 소요될 수 있습니다.',
+    'For very large text files, changing this can take 5+ seconds.',
+    '文字数の多いテキストファイルでは、変更に5秒以上かかることがあります。',
+    '对于字数较多的文本文件,更改可能需要5秒以上。',
+  ],
+  'weight_section': ['굵기', 'Weight', '太さ', '粗细'],
+  'font_size': ['글자 크기', 'Font Size', '文字サイズ', '字体大小'],
+  'letter_spacing': ['자간', 'Letter Spacing', '字間', '字间距'],
+  'line_height': ['행간', 'Line Height', '行間', '行间距'],
+  'page_margin': ['바깥 여백', 'Page Margin', '余白', '页边距'],
+  'paragraph_indent': ['들여쓰기', 'Indent', 'インデント', '首行缩进'],
+  'language_section': ['언어', 'Language', '言語', '语言'],
+  'app_name_section': ['앱 이름', 'App Name', 'アプリ名', '应用名称'],
+  'system_mode': ['시스템', 'System', 'システム', '系统'],
+  'light_mode': ['라이트', 'Light', 'ライト', '浅色'],
+  'dark_mode': ['다크', 'Dark', 'ダーク', '深色'],
+
+  // Enum labels
+  'font_system': ['시스템 기본', 'System Default', 'システムデフォルト', '系统默认'],
+  'font_notoSansKr': ['노토 산스', 'Noto Sans', 'Noto Sans', 'Noto Sans'],
+  'font_pretendard': ['프리텐다드', 'Pretendard', 'Pretendard', 'Pretendard'],
+  'font_maruBuri': ['마루부리', 'Maru Buri', 'マルブリ', 'Maru Buri'],
+  'font_notoSerifKr': ['노토 세리프', 'Noto Serif', 'Noto Serif', 'Noto Serif'],
+  'font_nanumGothic': [
+    '나눔고딕',
+    'Nanum Gothic',
+    'ナヌムゴシック',
+    'Nanum Gothic',
+  ],
+  'font_nanumMyeongjo': [
+    '나눔명조',
+    'Nanum Myeongjo',
+    'ナヌム明朝',
+    'Nanum Myeongjo',
+  ],
+  'font_gowunBatang': [
+    '고운바탕',
+    'Gowun Batang',
+    'コウンバタン',
+    'Gowun Batang',
+  ],
+  'font_gowunDodum': [
+    '고운돋움',
+    'Gowun Dodum',
+    'コウンドドゥム',
+    'Gowun Dodum',
+  ],
+  'font_ibmPlexSansKr': [
+    'IBM 플렉스 산스',
+    'IBM Plex Sans',
+    'IBM Plex Sans',
+    'IBM Plex Sans',
+  ],
+
+  'weight_light': ['가늘게', 'Light', '細字', '细'],
+  'weight_regular': ['보통', 'Regular', '標準', '常规'],
+  'weight_medium': ['중간', 'Medium', '中太', '中等'],
+  'weight_semiBold': ['약간 굵게', 'Semi Bold', 'やや太字', '半粗'],
+  'weight_bold': ['굵게', 'Bold', '太字', '粗'],
+
+  'bg_white': ['화이트', 'White', 'ホワイト', '白色'],
+  'bg_sepia': ['세피아', 'Sepia', 'セピア', '棕褐色'],
+  'bg_gray': ['그레이', 'Gray', 'グレー', '灰色'],
+  'bg_dark': ['다크', 'Dark', 'ダーク', '深色'],
+  'bg_black': ['블랙', 'Black', 'ブラック', '黑色'],
+
+  'sort_defaultOrder': [
+    '내 서재 (기본)',
+    'My Library (Default)',
+    'マイライブラリ(デフォルト)',
+    '我的书房(默认)',
+  ],
+  'sort_recentlyRead': ['최근 읽은 순', 'Recently Read', '最近読んだ順', '最近阅读'],
+  'sort_nameAsc': [
+    '이름순 (가나다·ABC)',
+    'Name (A-Z)',
+    '名前順(A-Z)',
+    '名称(A-Z)',
+  ],
+  'sort_nameDesc': ['이름순 (역순)', 'Name (Z-A)', '名前順(Z-A)', '名称(Z-A)'],
+  'sort_addedNewest': [
+    '최신 등록순',
+    'Newest Added',
+    '追加日が新しい順',
+    '最新添加',
+  ],
+  'sort_addedOldest': [
+    '오래된 순',
+    'Oldest Added',
+    '追加日が古い順',
+    '最早添加',
+  ],
+};
+
+String fontLabel(ReadingFont f) => tr('font_${f.name}');
+String weightLabel(ReadingWeight w) => tr('weight_${w.name}');
+String backgroundLabel(String key) => tr('bg_$key');

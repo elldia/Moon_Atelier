@@ -1,0 +1,529 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+import '../data/bookmark_store.dart';
+import '../data/highlight_store.dart';
+import '../data/reading_settings_controller.dart';
+import '../models/bookmark.dart';
+import '../models/highlight.dart';
+import '../l10n/strings.dart';
+import '../models/reading_settings.dart';
+import '../widgets/glass.dart';
+import '../widgets/reading_settings_sheet.dart';
+import 'saved_items_screen.dart';
+
+const _uuid = Uuid();
+
+/// Max characters per rendered chunk. A single multi-megabyte string handed to
+/// one Text/SelectableText widget can overwhelm the web text-layout engine on
+/// very large files (a 4MB+ novel crashes CanvasKit), so long content is split
+/// into bounded chunks and rendered in a virtualized, lazily-built list.
+const _maxChunkLength = 2000;
+
+/// Shared plain-text reader used for .txt, .docx and .rtf (post-extraction)
+/// content. Font, spacing, margins, indent, background and theme all come
+/// from the shared [ReadingSettingsController] so they stay in sync with the
+/// library screen and update live while reading. Also supports selecting a
+/// sentence to save as a highlighted quote, and bookmarking the current
+/// position — both scoped to [bookId] and persisted independently of the
+/// book's own last-read position.
+class TextViewerScreen extends StatefulWidget {
+  final String bookId;
+  final String title;
+  final String content;
+  final double? initialOffset;
+  final ValueChanged<double>? onPositionChanged;
+  final ValueChanged<double>? onProgressChanged;
+
+  const TextViewerScreen({
+    super.key,
+    required this.bookId,
+    required this.title,
+    required this.content,
+    this.initialOffset,
+    this.onPositionChanged,
+    this.onProgressChanged,
+  });
+
+  @override
+  State<TextViewerScreen> createState() => _TextViewerScreenState();
+}
+
+class _TextViewerScreenState extends State<TextViewerScreen> {
+  final _scrollController = ScrollController();
+  final _progressNotifier = ValueNotifier<double>(0);
+  Timer? _saveDebounce;
+  late final List<String> _chunks;
+  final Map<int, List<Highlight>> _highlightsByChunk = {};
+
+  int? _selectedChunkIndex;
+  TextSelection? _selection;
+  Color _pendingHighlightColor = Highlight.defaultColor;
+
+  static const _highlightColors = [
+    Highlight.defaultColor,
+    Color(0x664CAF50),
+    Color(0x66FF80AB),
+    Color(0x6664B5F6),
+    Color(0x66FFB74D),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _chunks = _splitIntoChunks(widget.content);
+    _loadHighlights();
+
+    final offset = widget.initialOffset;
+    if (offset != null && offset > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollController.hasClients) return;
+        final target = offset.clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        );
+        _scrollController.jumpTo(target);
+      });
+    }
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _loadHighlights() {
+    _highlightsByChunk.clear();
+    for (final h in HighlightStore.forBook(widget.bookId)) {
+      _highlightsByChunk.putIfAbsent(h.chunkIndex, () => []).add(h);
+    }
+  }
+
+  static List<String> _splitIntoChunks(String content) {
+    if (content.isEmpty) return const [];
+    final chunks = <String>[];
+    for (final paragraph in content.split('\n')) {
+      if (paragraph.length <= _maxChunkLength) {
+        chunks.add(paragraph);
+        continue;
+      }
+      for (var i = 0; i < paragraph.length; i += _maxChunkLength) {
+        chunks.add(
+          paragraph.substring(
+            i,
+            (i + _maxChunkLength).clamp(0, paragraph.length),
+          ),
+        );
+      }
+    }
+    return chunks;
+  }
+
+  void _onScroll() {
+    final position = _scrollController.position;
+    _progressNotifier.value = position.maxScrollExtent <= 0
+        ? 1
+        : (position.pixels / position.maxScrollExtent).clamp(0, 1);
+
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 800), () {
+      widget.onPositionChanged?.call(_scrollController.offset);
+      widget.onProgressChanged?.call(_progressNotifier.value);
+    });
+  }
+
+  void _onSelectionChanged(int index, TextSelection selection) {
+    setState(() {
+      if (selection.isCollapsed) {
+        if (_selectedChunkIndex == index) {
+          _selectedChunkIndex = null;
+          _selection = null;
+        }
+      } else {
+        _selectedChunkIndex = index;
+        _selection = selection;
+      }
+    });
+  }
+
+  Future<void> _saveHighlight() async {
+    final index = _selectedChunkIndex;
+    final selection = _selection;
+    if (index == null || selection == null) return;
+    final chunk = _chunks[index];
+    final start = selection.start.clamp(0, chunk.length);
+    final end = selection.end.clamp(0, chunk.length);
+    if (end <= start) return;
+
+    final highlight = Highlight(
+      id: _uuid.v4(),
+      bookId: widget.bookId,
+      chunkIndex: index,
+      start: start,
+      end: end,
+      text: chunk.substring(start, end),
+      color: _pendingHighlightColor,
+      createdAt: DateTime.now(),
+    );
+    await HighlightStore.add(highlight);
+    if (!mounted) return;
+    setState(() {
+      _highlightsByChunk.putIfAbsent(index, () => []).add(highlight);
+      _selectedChunkIndex = null;
+      _selection = null;
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _selectedChunkIndex = null;
+      _selection = null;
+    });
+  }
+
+  String _previewNear(double offset) {
+    if (_chunks.isEmpty) return tr('empty_document');
+    final maxExtent = _scrollController.hasClients
+        ? _scrollController.position.maxScrollExtent
+        : 0.0;
+    final ratio = maxExtent > 0 ? (offset / maxExtent).clamp(0.0, 1.0) : 0.0;
+    final idx = (ratio * (_chunks.length - 1)).round().clamp(
+      0,
+      _chunks.length - 1,
+    );
+    for (var i = idx; i < _chunks.length; i++) {
+      final text = _chunks[i].trim();
+      if (text.isNotEmpty) {
+        return text.length > 28 ? '${text.substring(0, 28)}…' : text;
+      }
+    }
+    return tr('empty_paragraph');
+  }
+
+  Future<void> _addBookmark() async {
+    final offset = _scrollController.hasClients
+        ? _scrollController.offset
+        : 0.0;
+    final bookmark = Bookmark(
+      id: _uuid.v4(),
+      bookId: widget.bookId,
+      position: offset,
+      label: _previewNear(offset),
+      createdAt: DateTime.now(),
+    );
+    await BookmarkStore.add(bookmark);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(tr('bookmark_added'))));
+  }
+
+  void _seekToRatio(double ratio) {
+    if (!_scrollController.hasClients) return;
+    _scrollController.jumpTo(
+      ratio.clamp(0.0, 1.0) * _scrollController.position.maxScrollExtent,
+    );
+  }
+
+  Future<void> _openSavedItems() async {
+    final result = await Navigator.of(context).push<SavedItemJump>(
+      MaterialPageRoute(
+        builder: (_) =>
+            SavedItemsScreen(bookId: widget.bookId, bookTitle: widget.title),
+      ),
+    );
+    if (result == null || !mounted || !_scrollController.hasClients) return;
+
+    double? target;
+    final chunkIndex = result.chunkIndex;
+    final position = result.position;
+    if (chunkIndex != null && _chunks.length > 1) {
+      final ratio = chunkIndex / (_chunks.length - 1);
+      target = ratio * _scrollController.position.maxScrollExtent;
+    } else if (position is num) {
+      target = position.toDouble();
+    }
+    if (target == null) return;
+    _scrollController.animateTo(
+      target.clamp(0.0, _scrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _saveDebounce?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _progressNotifier.dispose();
+    super.dispose();
+  }
+
+  List<Widget> _buildAppBarActions(ReadingSettings settings) {
+    final progressChip = settings.showProgress && _chunks.isNotEmpty
+        ? ValueListenableBuilder<double>(
+            valueListenable: _progressNotifier,
+            builder: (context, progress, _) {
+              final current = (progress * (_chunks.length - 1)).round() + 1;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Center(child: Text('$current / ${_chunks.length}')),
+              );
+            },
+          )
+        : null;
+
+    final narrow = MediaQuery.of(context).size.width < 480;
+    if (narrow) {
+      return [
+        ?progressChip,
+        PopupMenuButton<String>(
+          onSelected: (v) {
+            if (v == 'bookmark') _addBookmark();
+            if (v == 'saved') _openSavedItems();
+            if (v == 'settings') showReadingSettingsSheet(context);
+            if (v == 'home') {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(value: 'bookmark', child: Text(tr('bookmark_add'))),
+            PopupMenuItem(
+              value: 'saved',
+              child: Text(tr('bookmark_saved_list')),
+            ),
+            PopupMenuItem(
+              value: 'settings',
+              child: Text(tr('reading_settings')),
+            ),
+            PopupMenuItem(value: 'home', child: Text(tr('home'))),
+          ],
+        ),
+      ];
+    }
+    return [
+      ?progressChip,
+      IconButton(
+        tooltip: tr('bookmark_add'),
+        icon: const Icon(Icons.bookmark_add_outlined),
+        onPressed: _addBookmark,
+      ),
+      IconButton(
+        tooltip: tr('bookmark_saved_list'),
+        icon: const Icon(Icons.bookmarks_outlined),
+        onPressed: _openSavedItems,
+      ),
+      IconButton(
+        tooltip: tr('reading_settings'),
+        icon: const Icon(Icons.tune),
+        onPressed: () => showReadingSettingsSheet(context),
+      ),
+      IconButton(
+        tooltip: tr('home'),
+        icon: const Icon(Icons.home_outlined),
+        onPressed: () =>
+            Navigator.of(context).popUntil((route) => route.isFirst),
+      ),
+    ];
+  }
+
+  Widget _buildChunk(int index, String chunk, ReadingSettings settings) {
+    final highlights = List<Highlight>.of(_highlightsByChunk[index] ?? const [])
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    final spans = <InlineSpan>[
+      if (settings.paragraphIndent > 0)
+        WidgetSpan(child: SizedBox(width: settings.paragraphIndent)),
+    ];
+    var cursor = 0;
+    for (final h in highlights) {
+      final start = h.start.clamp(0, chunk.length);
+      final end = h.end.clamp(0, chunk.length);
+      if (end <= cursor) continue;
+      if (start > cursor)
+        spans.add(TextSpan(text: chunk.substring(cursor, start)));
+      spans.add(
+        TextSpan(
+          text: chunk.substring(start.clamp(cursor, chunk.length), end),
+          style: TextStyle(backgroundColor: h.color),
+        ),
+      );
+      cursor = end;
+    }
+    if (cursor < chunk.length)
+      spans.add(TextSpan(text: chunk.substring(cursor)));
+
+    return SelectableText.rich(
+      TextSpan(children: spans),
+      style: settings.textStyle,
+      onSelectionChanged: (selection, cause) =>
+          _onSelectionChanged(index, selection),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: ReadingSettingsController.instance,
+      builder: (context, _) {
+        final settings = ReadingSettingsController.instance.value;
+        return Scaffold(
+          backgroundColor: settings.background.color,
+          appBar: glassAppBar(
+            context,
+            title: Text(widget.title, overflow: TextOverflow.ellipsis),
+            leading: IconButton(
+              tooltip: tr('back'),
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            actions: _buildAppBarActions(settings),
+          ),
+          body: _chunks.isEmpty
+              ? Center(child: Text(tr('content_not_found')))
+              : Stack(
+                  children: [
+                    TextSelectionTheme(
+                      // A vivid, theme-independent color so an in-progress
+                      // drag selection is unmistakably visible against any
+                      // reading background (default selection tinting can
+                      // be too subtle, especially on sepia/dark).
+                      data: const TextSelectionThemeData(
+                        selectionColor: Color(0x66FF6D00),
+                      ),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: EdgeInsets.all(settings.pageMargin),
+                        itemCount: _chunks.length,
+                        itemBuilder: (context, index) {
+                          final chunk = _chunks[index];
+                          if (chunk.isEmpty) {
+                            return const SizedBox(height: 16);
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildChunk(index, chunk, settings),
+                          );
+                        },
+                      ),
+                    ),
+                    if (_selectedChunkIndex != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: SafeArea(
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(12),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.border_color, size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          tr('save_selection_prompt'),
+                                        ),
+                                      ),
+                                      for (final color in _highlightColors)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 4,
+                                          ),
+                                          child: InkWell(
+                                            onTap: () => setState(
+                                              () => _pendingHighlightColor =
+                                                  color,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                            child: Container(
+                                              width: 24,
+                                              height: 24,
+                                              decoration: BoxDecoration(
+                                                color: Color(
+                                                  0xFF000000 | color.toARGB32(),
+                                                ),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color:
+                                                      _pendingHighlightColor ==
+                                                          color
+                                                      ? Theme.of(context)
+                                                            .colorScheme
+                                                            .primary
+                                                      : Colors.transparent,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        onPressed: _cancelSelection,
+                                        child: Text(tr('cancel')),
+                                      ),
+                                      TextButton(
+                                        onPressed: _saveHighlight,
+                                        child: Text(tr('save_as_highlight')),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+          bottomNavigationBar: settings.showProgress && _chunks.length > 1
+              ? SafeArea(
+                  child: SizedBox(
+                    height: 32,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _progressNotifier,
+                        builder: (context, progress, _) => SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 2,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 14,
+                            ),
+                          ),
+                          child: Slider(
+                            value: progress.clamp(0.0, 1.0),
+                            onChanged: _seekToRatio,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
+    );
+  }
+}
