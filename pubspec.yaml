@@ -41,13 +41,16 @@ dependencies:
   file_picker_web: ^3.1.0
   epub_view: ^3.3.0
   pdfx: ^2.11.0
-  archive: ^3.6.1
+  archive: ^4.0.9
   xml: ^6.6.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   uuid: ^4.6.0
   cp949_codec: ^1.0.2
   web: ^1.1.1
+  # Native (Android/iOS/desktop) text-to-speech -- the web build keeps using
+  # the browser's own Web Speech API instead (see utils/tts_reader_web.dart).
+  flutter_tts: ^4.2.3
   google_fonts: ^6.2.1
   url_launcher: ^6.3.1
   http: ^1.2.2
@@ -56,6 +59,8 @@ dependencies:
   # text — epub_view itself only exposes rendering, not raw chapter text.
   epubx: ^4.0.0
   html: ^0.15.6
+  pdfrx: ^2.6.1
+  webview_flutter: ^4.14.1
 
 dependency_overrides:
   # flutter_html 3.0.0 (via epub_view) calls a private query_selector API
@@ -66,6 +71,21 @@ dependency_overrides:
   # mouse-wheel PDF zoom feature. See vendor/pdfx/lib/src/viewer/pinch/pdf_view_pinch.dart.
   pdfx:
     path: vendor/pdfx
+  # epubx (^3.0.8) pins an old `image` major that predates the API pdfrx's
+  # native backend needs (ChannelOrder, Image.fromBytes(width, height,
+  # bytes)). epubx only calls the long-stable decodeImage()/Image type, so
+  # it's unaffected by the newer major.
+  image: ^4.9.2
+  # epubx (^4.0.0) also pins an old `archive` major; only calls the
+  # long-stable Archive/ArchiveFile/.files/.name surface plus
+  # ZipDecoder().decodeBytes(), all unchanged across the newer major.
+  archive: ^4.0.9
+  # Vendored copy of epubx 4.0.0 with one patch: book_cover_reader.dart
+  # calls image's decodeImage() with a List<int>, which the bumped `image`
+  # major above no longer accepts (Uint8List only). See
+  # vendor/epubx/lib/src/readers/book_cover_reader.dart.
+  epubx:
+    path: vendor/epubx
 
 dev_dependencies:
   flutter_test:
