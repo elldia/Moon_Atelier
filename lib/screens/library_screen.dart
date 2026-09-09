@@ -29,6 +29,7 @@ import '../widgets/reading_settings_sheet.dart';
 import 'epub_viewer_screen.dart';
 import 'music_score_viewer_screen.dart';
 import 'note_editor_screen.dart';
+import 'note_viewer_screen.dart';
 import 'pdf_viewer_screen.dart';
 import 'text_viewer_screen.dart';
 
@@ -577,14 +578,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: const Icon(Icons.upload_file_outlined),
-                  title: Text(tr('file_register')),
-                  onTap: () => Navigator.of(context).pop('file'),
-                ),
-                ListTile(
                   leading: const Icon(Icons.edit_note),
                   title: Text(tr('note_create')),
                   onTap: () => Navigator.of(context).pop('note'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.upload_file_outlined),
+                  title: Text(tr('file_register')),
+                  onTap: () => Navigator.of(context).pop('file'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.create_new_folder_outlined),
@@ -650,6 +651,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
       format: BookFormat.note,
       bytes: Uint8List.fromList(utf8.encode(result.content)),
       open: false,
+    );
+  }
+
+  Future<void> _editNote(Book book) async {
+    final result = await Navigator.of(context).push<NoteResult>(
+      MaterialPageRoute(
+        builder: (_) => NoteEditorScreen(
+          initialTitle: book.name,
+          initialContent: decodeTextBytes(book.bytes),
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    await _updateBook(
+      book.copyWith(
+        name: result.title,
+        bytes: Uint8List.fromList(utf8.encode(result.content)),
+      ),
     );
   }
 
@@ -864,23 +883,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
         }
         break;
       case BookFormat.note:
-        Navigator.of(context)
-            .push<NoteResult>(
-              MaterialPageRoute(
-                builder: (_) => NoteEditorScreen(
-                  initialTitle: book.name,
-                  initialContent: decodeTextBytes(book.bytes),
-                ),
-              ),
-            )
-            .then((result) {
-              if (result == null || !mounted) return;
-              current = current.copyWith(
-                name: result.title,
-                bytes: Uint8List.fromList(utf8.encode(result.content)),
-              );
-              _updateBook(current);
-            });
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => NoteViewerScreen(
+              title: book.name,
+              content: decodeTextBytes(book.bytes),
+            ),
+          ),
+        );
         break;
     }
   }
@@ -1324,6 +1334,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             ? null
                             : PopupMenuButton<String>(
                                 onSelected: (action) {
+                                  if (action == 'edit') _editNote(book);
                                   if (action == 'rename') _renameBook(book);
                                   if (action == 'move') {
                                     _moveBookToFolder(book);
@@ -1331,6 +1342,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   if (action == 'delete') _deleteBook(book);
                                 },
                                 itemBuilder: (context) => [
+                                  if (book.format == BookFormat.note)
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text(tr('note_edit')),
+                                    ),
                                   PopupMenuItem(
                                     value: 'rename',
                                     child: Text(tr('rename')),

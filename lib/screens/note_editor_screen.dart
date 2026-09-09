@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../l10n/strings.dart';
 import '../widgets/glass.dart';
+import '../widgets/markdown_help_dialog.dart';
 
-/// What [NoteEditorScreen] hands back on save -- null means the user backed
-/// out without keeping anything (only possible in create mode; editing an
-/// existing note always saves, even if unchanged, since there's nothing to
-/// discard back to).
+/// What [NoteEditorScreen] hands back when the checkmark is pressed -- the
+/// only way out that saves. Backing out (arrow / system back) always
+/// discards instead: in create mode after confirming, in edit mode straight
+/// away, since the previously-saved version is untouched either way.
 class NoteResult {
   final String title;
   final String content;
@@ -15,10 +15,10 @@ class NoteResult {
 }
 
 /// Create-or-edit screen for a user-authored note (BookFormat.note): a
-/// plain-text title plus a raw Markdown body, with Edit/Preview tabs the
-/// same way GitHub edits a README. Nothing about `#`/`##`/`*`/`` ` `` is
-/// special-cased here -- the Preview tab just runs the body through a
-/// standard CommonMark renderer, so ordinary Markdown syntax already works.
+/// plain-text title plus a raw Markdown body. Purely a writing surface --
+/// no preview here, since `#`/`##`/`*`/`` ` `` don't need any special
+/// handling while typing; rendering only happens when reading the saved
+/// note back in NoteViewerScreen.
 class NoteEditorScreen extends StatefulWidget {
   final String? initialTitle;
   final String? initialContent;
@@ -35,41 +35,66 @@ class NoteEditorScreen extends StatefulWidget {
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends State<NoteEditorScreen>
-    with SingleTickerProviderStateMixin {
+class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late final _titleController = TextEditingController(
     text: widget.initialTitle ?? '',
   );
   late final _bodyController = TextEditingController(
     text: widget.initialContent ?? '',
   );
-  late final _tabController = TabController(
-    // A brand new note opens straight into editing; an existing one opens
-    // on Preview first, matching how you'd open a book to read it.
-    initialIndex: widget.isEditing ? 1 : 0,
-    length: 2,
-    vsync: this,
-  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowMarkdownHelp(context);
+    });
+  }
 
   @override
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
   void _save() {
-    final content = _bodyController.text;
-    if (!widget.isEditing && content.trim().isEmpty) {
-      // Nothing worth keeping from a fresh, still-empty note.
+    final title = _titleController.text.trim();
+    Navigator.of(context).pop(
+      NoteResult(
+        title: title.isEmpty ? tr('note_untitled') : title,
+        content: _bodyController.text,
+      ),
+    );
+  }
+
+  /// The back arrow / system back gesture never saves by itself -- only the
+  /// checkmark does. Editing an existing note just leaves (there's nothing
+  /// to "discard" back to); creating a fresh one asks first, since backing
+  /// out here would otherwise silently drop everything just typed.
+  Future<void> _handleBack() async {
+    if (widget.isEditing) {
       Navigator.of(context).pop();
       return;
     }
-    final title = _titleController.text.trim();
-    Navigator.of(
-      context,
-    ).pop(NoteResult(title: title.isEmpty ? tr('note_untitled') : title, content: content));
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('note_discard_title')),
+        content: Text(tr('note_discard_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('note_keep_writing')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('note_leave_without_saving')),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -77,7 +102,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _save();
+        if (!didPop) _handleBack();
       },
       child: Scaffold(
         appBar: glassAppBar(
@@ -85,7 +110,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
           leading: IconButton(
             tooltip: tr('back'),
             icon: const Icon(Icons.arrow_back),
-            onPressed: _save,
+            onPressed: _handleBack,
           ),
           title: TextField(
             controller: _titleController,
@@ -103,47 +128,26 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
               onPressed: _save,
             ),
           ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(text: tr('note_edit_tab')),
-              Tab(text: tr('note_preview_tab')),
-            ],
-          ),
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _bodyController,
-                autofocus: !widget.isEditing,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                keyboardType: TextInputType.multiline,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 15,
-                  height: 1.5,
-                ),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: tr('note_body_hint'),
-                ),
-              ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            controller: _bodyController,
+            autofocus: !widget.isEditing,
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+            keyboardType: TextInputType.multiline,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 15,
+              height: 1.5,
             ),
-            AnimatedBuilder(
-              animation: _bodyController,
-              builder: (context, _) => Markdown(
-                data: _bodyController.text.trim().isEmpty
-                    ? tr('note_preview_empty')
-                    : _bodyController.text,
-                selectable: true,
-              ),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: tr('note_body_hint'),
             ),
-          ],
+          ),
         ),
       ),
     );

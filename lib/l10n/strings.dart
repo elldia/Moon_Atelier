@@ -528,8 +528,44 @@ const _dict = <String, List<String>>{
     '_プレビューする内容がありません。_',
     '_没有可预览的内容。_',
   ],
-  'note_edit_tab': ['편집', 'Edit', '編集', '编辑'],
-  'note_preview_tab': ['미리보기', 'Preview', 'プレビュー', '预览'],
+  'note_edit': ['수정', 'Edit', '編集', '编辑'],
+
+  // Markdown shortcuts cheatsheet (note editor)
+  'md_help_title': [
+    '글쓰기 서식 안내',
+    'Formatting Cheatsheet',
+    '書式ガイド',
+    '格式速查',
+  ],
+  'md_help_intro': [
+    '아래 기호를 넣으면 자동으로 서식이 적용돼요.',
+    'Type these and they turn into formatting automatically.',
+    '以下の記号を入力すると自動的に書式が適用されます。',
+    '输入以下符号会自动应用相应格式。',
+  ],
+  'md_help_h1': ['제목', 'Heading', '見出し', '标题'],
+  'md_help_h2': ['부제목', 'Subheading', '小見出し', '副标题'],
+  'md_help_bold': ['굵게', 'Bold', '太字', '加粗'],
+  'md_help_italic': ['기울임', 'Italic', '斜体', '斜体'],
+  'md_help_list': ['목록', 'List', 'リスト', '列表'],
+  'md_help_quote': ['인용', 'Quote', '引用', '引用'],
+  'md_help_code': ['코드', 'Code', 'コード', '代码'],
+  'md_help_link': ['링크', 'Link', 'リンク', '链接'],
+
+  'note_discard_title': [
+    '글 등록을 취소하시겠습니까?',
+    'Discard this note?',
+    'この投稿を破棄しますか?',
+    '要放弃这篇笔记吗?',
+  ],
+  'note_discard_body': [
+    '지금까지 쓴 내용이 저장되지 않습니다.',
+    "What you've written won't be saved.",
+    'これまで書いた内容は保存されません。',
+    '目前写的内容不会被保存。',
+  ],
+  'note_keep_writing': ['계속 쓰기', 'Keep Writing', '書き続ける', '继续编辑'],
+  'note_leave_without_saving': ['나가기', 'Leave', '破棄して戻る', '离开'],
 };
 
 String fontLabel(ReadingFont f) => tr('font_${f.name}');

@@ -5,6 +5,7 @@ import 'data/bookmark_store.dart';
 import 'data/folder_store.dart';
 import 'data/highlight_store.dart';
 import 'data/library_store.dart';
+import 'data/markdown_help_store.dart';
 import 'data/onboarding_store.dart';
 import 'data/reading_settings_controller.dart';
 import 'data/reading_settings_store.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   await HighlightStore.init();
   await FolderStore.init();
   await OnboardingStore.init();
+  await MarkdownHelpStore.init();
   runApp(const MyApp());
 }
 
