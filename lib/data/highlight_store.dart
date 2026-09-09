@@ -30,6 +30,11 @@ class HighlightStore {
     return items;
   }
 
+  static List<Highlight> loadAll() => _b.keys
+      .cast<String>()
+      .map((key) => Highlight.fromMap(key, _b.get(key) as Map))
+      .toList();
+
   static Future<void> add(Highlight highlight) =>
       _b.put(highlight.id, highlight.toMap());
 

@@ -566,6 +566,22 @@ const _dict = <String, List<String>>{
   ],
   'note_keep_writing': ['계속 쓰기', 'Keep Writing', '書き続ける', '继续编辑'],
   'note_leave_without_saving': ['나가기', 'Leave', '破棄して戻る', '离开'],
+
+  'backup_title': ['백업', 'Backup', 'バックアップ', '备份'],
+  'backup_desc': [
+    '내가 쓴 글, 등록한 파일, 북마크, 형광펜을 통째로 파일 하나로 내려받아요.',
+    'Download everything -- your notes, imported files, bookmarks and highlights -- as one file.',
+    '書いたメモ、登録したファイル、ブックマーク、ハイライトをまとめて1つのファイルでダウンロードします。',
+    '将你写的笔记、导入的文件、书签和高亮一起下载为一个文件。',
+  ],
+  'backup_download': ['백업 파일 내려받기', 'Download Backup', 'バックアップをダウンロード', '下载备份文件'],
+  'backup_done': ['백업 파일을 저장했어요.', 'Backup saved.', 'バックアップを保存しました。', '备份文件已保存。'],
+  'backup_failed': [
+    '백업에 실패했습니다: {error}',
+    'Backup failed: {error}',
+    'バックアップに失敗しました: {error}',
+    '备份失败: {error}',
+  ],
 };
 
 String fontLabel(ReadingFont f) => tr('font_${f.name}');

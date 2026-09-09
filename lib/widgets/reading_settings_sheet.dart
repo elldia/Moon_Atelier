@@ -1,8 +1,10 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
+import '../utils/backup_exporter.dart';
 import '../utils/tts_reader.dart';
 import 'glass.dart';
 
@@ -26,6 +28,7 @@ class _ReadingSettingsDialog extends StatefulWidget {
 
 class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   late ReadingSettings _draft = ReadingSettingsController.instance.value;
+  bool _backingUp = false;
 
   @override
   void initState() {
@@ -47,6 +50,30 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
 
   void _set(ReadingSettings Function(ReadingSettings current) updater) {
     setState(() => _draft = updater(_draft));
+  }
+
+  Future<void> _backup() async {
+    setState(() => _backingUp = true);
+    try {
+      final bytes = await Future(BackupExporter.build);
+      if (!mounted) return;
+      final uri = await FilePicker.saveFile(
+        fileName: BackupExporter.suggestedFileName(),
+        bytes: bytes,
+        mimeType: 'application/zip',
+      );
+      if (!mounted || uri == null) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr('backup_done'))));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('backup_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _backingUp = false);
+    }
   }
 
   void _apply() {
@@ -218,6 +245,29 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       _TtsSpeedSelector(
                         value: _draft.ttsRate,
                         onChanged: (v) => _set((s) => s.copyWith(ttsRate: v)),
+                      ),
+                      const SizedBox(height: 20),
+                      _SectionLabel(tr('backup_title')),
+                      Text(
+                        tr('backup_desc'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _backingUp ? null : _backup,
+                          icon: _backingUp
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.download_outlined),
+                          label: Text(tr('backup_download')),
+                        ),
                       ),
                     ],
                   ),

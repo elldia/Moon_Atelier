@@ -29,6 +29,11 @@ class BookmarkStore {
     return items;
   }
 
+  static List<Bookmark> loadAll() => _b.keys
+      .cast<String>()
+      .map((key) => Bookmark.fromMap(key, _b.get(key) as Map))
+      .toList();
+
   static Future<void> add(Bookmark bookmark) =>
       _b.put(bookmark.id, bookmark.toMap());
 
