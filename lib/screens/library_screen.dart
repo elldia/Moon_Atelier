@@ -17,6 +17,7 @@ import '../utils/dropbox_picker.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/file_pick_watchdog.dart';
 import '../utils/musicxml_extractor.dart';
+import '../utils/onedrive_picker.dart';
 import '../utils/rtf_text_extractor.dart';
 import '../utils/text_decoder.dart';
 import '../utils/zip_book_extractor.dart';
@@ -278,7 +279,67 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  /// Shared tail end of both local-file and Dropbox picking: resolve a
+  Future<void> _pickFromOneDrive() async {
+    if (!isOneDriveConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('onedrive_not_configured'))));
+      return;
+    }
+    setState(() => _isPicking = true);
+    _debugStatus.value = '1) OneDrive 선택창 여는 중...';
+    try {
+      final picked =
+          await chooseOneDriveFile(
+            filter: '.epub,.pdf,.txt,.docx,.rtf,.musicxml,.mxl,.zip',
+            redirectUri: Uri.base.toString(),
+          ).timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw TimeoutException('OneDrive picker'),
+          );
+      if (picked == null) {
+        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
+        return;
+      }
+      _debugStatus.value = '2) 선택됨: ${picked.name} — 다운로드 중...';
+
+      final response = await http
+          .get(Uri.parse(picked.downloadUrl))
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () =>
+                throw TimeoutException('downloading from OneDrive'),
+          );
+      if (response.statusCode != 200) {
+        throw Exception('OneDrive download failed (${response.statusCode})');
+      }
+
+      final dotIndex = picked.name.lastIndexOf('.');
+      final extension = dotIndex < 0
+          ? null
+          : picked.name.substring(dotIndex + 1);
+      await _registerPickedBytes(
+        name: picked.name,
+        bytes: response.bodyBytes,
+        extension: extension,
+      );
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: 시간 초과 — $e)';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
+    } catch (e) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: $e)';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  /// Shared tail end of local-file, Dropbox and OneDrive picking: resolve a
   /// format from the extension (falling back to peeking inside a .zip),
   /// then save and open the book. Assumes [_debugStatus]/[_isPicking] are
   /// already being managed by the caller.
@@ -548,14 +609,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
           _debugStatus.value = '0.9) Dropbox에서 선택 눌림';
           unawaited(_pickFromDropbox());
         },
+        onPickOneDrive: () {
+          _debugStatus.value = '0.9) OneDrive에서 선택 눌림';
+          unawaited(_pickFromOneDrive());
+        },
       );
       if (!mounted || source == null) return;
       switch (source) {
         case FileSource.local:
         case FileSource.clipboard:
         case FileSource.dropbox:
-          break; // already handled synchronously via the callbacks above
         case FileSource.oneDrive:
+          break; // already handled synchronously via the callbacks above
         case FileSource.wifiTransfer:
         case FileSource.ftp:
           ScaffoldMessenger.of(context)

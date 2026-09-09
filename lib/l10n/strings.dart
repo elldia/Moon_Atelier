@@ -352,6 +352,12 @@ const _dict = <String, List<String>>{
     'Dropbox連携がまだ設定されていません。',
     'Dropbox 集成尚未配置。',
   ],
+  'onedrive_not_configured': [
+    'OneDrive 연동이 아직 설정되지 않았습니다.',
+    'OneDrive integration is not configured yet.',
+    'OneDrive連携がまだ設定されていません。',
+    'OneDrive 集成尚未配置。',
+  ],
   'source_wifi': ['와이파이 전송', 'Wi-Fi Transfer', 'Wi-Fi転送', 'Wi-Fi传输'],
   'source_ftp': ['FTP', 'FTP', 'FTP', 'FTP'],
   'coming_soon': ['준비 중', 'Coming soon', '準備中', '敬请期待'],

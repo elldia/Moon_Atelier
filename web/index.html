@@ -64,6 +64,16 @@
   <script id="dropboxjs" src="https://www.dropbox.com/static/api/2/dropins.js" data-app-key="xx0z63zqfvlf1cb"></script>
 
   <!--
+    OneDrive file picker (client-side-only, no backend needed). Requires a
+    free Client ID from https://entra.microsoft.com — App registrations →
+    New registration → add a "Single-page application" platform with this
+    site's URL as a redirect URI, and grant the "Files.Read" Microsoft
+    Graph delegated permission. The Client ID itself is configured in
+    lib/utils/onedrive_picker.dart, not here.
+  -->
+  <script type="text/javascript" src="https://js.live.net/v7.2/OneDrive.js"></script>
+
+  <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
     or to give the user feedback during the initialization process.

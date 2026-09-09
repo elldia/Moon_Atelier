@@ -3,30 +3,32 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import 'glass.dart';
 
-/// Where the user wants to bring a new file in from. 'local', 'clipboard'
-/// and 'dropbox' are the only sources this app can actually reach without a
-/// backend — the rest report back to the caller as chosen, which shows a
-/// "coming soon" message.
+/// Where the user wants to bring a new file in from. 'local', 'clipboard',
+/// 'dropbox' and 'oneDrive' are the only sources this app can actually
+/// reach without a backend — the rest report back to the caller as chosen,
+/// which shows a "coming soon" message.
 enum FileSource { local, clipboard, dropbox, oneDrive, wifiTransfer, ftp }
 
 /// Shows the "where do you want to add a file from" picker.
 ///
-/// [onPickLocal], [onPickClipboard] and [onPickDropbox] are invoked
-/// synchronously from inside the tapped [ListTile]'s `onTap`, before the
-/// dialog is popped — not after awaiting this function's returned Future.
-/// That matters for [onPickLocal] and [onPickDropbox] specifically: both
-/// open a native/third-party picker (a `<input type="file">.click()`, or
-/// Dropbox's own popup window) that browsers only allow while still inside
-/// the same synchronous call stack as a real user gesture ("transient
-/// activation"). Desktop browsers are lenient about a short async gap, but
-/// mobile browsers (iOS Safari in particular) are not — going through an
-/// awaited `Navigator.pop()` + dialog-close animation first silently drops
-/// the picker, which looks like the button doing nothing / spinning forever.
+/// [onPickLocal], [onPickClipboard], [onPickDropbox] and [onPickOneDrive]
+/// are invoked synchronously from inside the tapped [ListTile]'s `onTap`,
+/// before the dialog is popped — not after awaiting this function's
+/// returned Future. That matters for all but [onPickClipboard]: each opens
+/// a native/third-party picker (a `<input type="file">.click()`, or
+/// Dropbox/OneDrive's own popup windows) that browsers only allow while
+/// still inside the same synchronous call stack as a real user gesture
+/// ("transient activation"). Desktop browsers are lenient about a short
+/// async gap, but mobile browsers (iOS Safari in particular) are not —
+/// going through an awaited `Navigator.pop()` + dialog-close animation
+/// first silently drops the picker, which looks like the button doing
+/// nothing / spinning forever.
 Future<FileSource?> showFileSourceDialog(
   BuildContext context, {
   required VoidCallback onPickLocal,
   required VoidCallback onPickClipboard,
   required VoidCallback onPickDropbox,
+  required VoidCallback onPickOneDrive,
 }) {
   return showDialog<FileSource>(
     context: context,
@@ -34,6 +36,7 @@ Future<FileSource?> showFileSourceDialog(
       onPickLocal: onPickLocal,
       onPickClipboard: onPickClipboard,
       onPickDropbox: onPickDropbox,
+      onPickOneDrive: onPickOneDrive,
     ),
   );
 }
@@ -42,11 +45,13 @@ class _FileSourceDialog extends StatelessWidget {
   final VoidCallback onPickLocal;
   final VoidCallback onPickClipboard;
   final VoidCallback onPickDropbox;
+  final VoidCallback onPickOneDrive;
 
   const _FileSourceDialog({
     required this.onPickLocal,
     required this.onPickClipboard,
     required this.onPickDropbox,
+    required this.onPickOneDrive,
   });
 
   static const _options = [
@@ -58,7 +63,7 @@ class _FileSourceDialog extends StatelessWidget {
       true,
     ),
     (FileSource.dropbox, Icons.cloud_queue_outlined, 'source_dropbox', true),
-    (FileSource.oneDrive, Icons.cloud_outlined, 'source_onedrive', false),
+    (FileSource.oneDrive, Icons.cloud_outlined, 'source_onedrive', true),
     (FileSource.wifiTransfer, Icons.wifi_tethering, 'source_wifi', false),
     (FileSource.ftp, Icons.dns_outlined, 'source_ftp', false),
   ];
@@ -129,6 +134,12 @@ class _FileSourceDialog extends StatelessWidget {
                               // window, which browsers can block if it's
                               // not triggered synchronously from the tap.
                               onPickDropbox();
+                              Navigator.of(context).pop();
+                              break;
+                            case FileSource.oneDrive:
+                              // Same reasoning again: OneDrive.open() also
+                              // opens a real popup window.
+                              onPickOneDrive();
                               Navigator.of(context).pop();
                               break;
                             default:
