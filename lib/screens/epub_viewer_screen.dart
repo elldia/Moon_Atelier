@@ -465,7 +465,10 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
                               if (v == 'settings')
                                 showReadingSettingsSheet(context);
                               if (v == 'search') {
-                                setState(() => _searchActive = true);
+                                setState(() {
+                                  _searchActive = true;
+                                  _uiVisible = true;
+                                });
                               }
                             },
                             itemBuilder: (context) => [
@@ -533,8 +536,10 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
                           IconButton(
                             tooltip: tr('search'),
                             icon: const Icon(Icons.search),
-                            onPressed: () =>
-                                setState(() => _searchActive = true),
+                            onPressed: () => setState(() {
+                              _searchActive = true;
+                              _uiVisible = true;
+                            }),
                           ),
                         ],
                 ),
@@ -546,7 +551,12 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
             onPointerDown: (_) => _uiVisibility.show(),
             child: NotificationListener<ScrollUpdateNotification>(
               onNotification: (n) {
-                if (n.scrollDelta != null) _uiVisibility.feed(n.scrollDelta!);
+                // Scrolling through search results shouldn't hide the app
+                // bar — closing search (the X button) is what hands control
+                // back to the normal scroll-hide behavior.
+                if (n.scrollDelta != null && !_searchActive) {
+                  _uiVisibility.feed(n.scrollDelta!);
+                }
                 return false;
               },
               child: Container(

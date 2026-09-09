@@ -18,7 +18,7 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 모든 설정은 홈 화면과 읽는 중 어디서든 즉시 변경 가능
 - EPUB·PDF·TXT·RTF·DOCX 전 형식에서 동일한 하단 진행바(클릭 & 드래그로 원하는 위치 이동) 및 진행률 표시
 - 100페이지(EPUB은 1000문단) 이상인 책은 처음·끝·±10페이지 이동 버튼이 진행바 옆에 추가로 표시
-- 스크롤하면 상단·하단 UI가 자동으로 숨겨지고, 화면을 탭하거나 위로 스크롤하면 다시 나타남
+- 스크롤하면 상단·하단 UI가 자동으로 숨겨지고, 화면을 탭하거나 위로 스크롤하면 다시 나타남(단, 본문 검색 중에는 스크롤해도 숨겨지지 않고 검색을 닫아야 다시 숨겨짐)
 - PDF는 마우스 휠과 터치 핀치줌으로 화면 확대·축소 가능
 - 음성으로 듣기(TTS): 시스템에 설치된 목소리 중에서 선택 가능하고 배속을 x1.0~x2.0(0.2 단위)로 조절 — EPUB·PDF·TXT·DOCX·RTF 전 형식 지원
 
@@ -39,8 +39,8 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 글래스모피즘(반투명 블러) 디자인, 320px 이하 좁은 화면까지 대응
 - 한국어 / English / 日本語 / 中文 4개 언어로 인터페이스 전환 가능
 - 앱 이름은 인터페이스 언어에 따라 자동 전환(한국어 → "달빛서재", 그 외 → "Moon Atelier")
-- 첫 실행 시 실제 화면 위에 반투명 오버레이로 버튼마다 설명을 보여주는 안내, "다음에 다시 보기" 또는 "다신 안 보기" 중 선택 가능. 새로고침 시 1.5초 스플래시 화면
-- 개발자에게 커피 한 잔 후원 버튼(실제 결제 없는 감사 팝업)
+- 첫 실행 시 실제 화면 위에 반투명 오버레이로 버튼마다 설명을 보여주는 안내, "다음에 다시 보기" 또는 "다신 안 보기" 중 선택 가능. 새로고침 시 0.8초 스플래시 화면
+- 개발자에게 커피 한 잔 후원 버튼([Buy Me a Coffee](https://buymeacoffee.com/elldia1222w)로 연결)
 
 ## English
 
@@ -58,7 +58,7 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Every setting can be changed instantly, from the home screen or while reading
 - The same draggable progress bar and position indicator across EPUB, PDF, TXT, RTF, and DOCX
 - Books over 100 pages (1000 paragraphs for EPUB) get extra first/last/±10-page jump buttons next to the progress bar
-- Scrolling auto-hides the top/bottom UI; tap the screen or scroll up to bring it back
+- Scrolling auto-hides the top/bottom UI; tap the screen or scroll up to bring it back (this pauses while in-content search is open, resuming once you close it)
 - PDF supports zoom via mouse wheel and touch pinch
 - Text-to-speech: pick from the voices installed on your system and adjust playback speed from x1.0 to x2.0 in 0.2 steps — available across EPUB, PDF, TXT, DOCX, and RTF
 
@@ -79,8 +79,8 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Glassmorphism (translucent blur) design that holds up down to 320px width
 - Switch the interface language between 한국어 / English / 日本語 / 中文
 - The app's display name follows the interface language automatically (Korean → "달빛서재", everything else → "Moon Atelier")
-- A first-run guide overlays the real screen with a translucent scrim and spotlights each button with its own explanation, with a choice between "show again next time" or "never show again". A 1.5s splash screen appears on load/refresh
-- A "buy the developer a coffee" button (a friendly thank-you popup, no real payment)
+- A first-run guide overlays the real screen with a translucent scrim and spotlights each button with its own explanation, with a choice between "show again next time" or "never show again". A 0.8s splash screen appears on load/refresh
+- A "buy the developer a coffee" button, linking out to [Buy Me a Coffee](https://buymeacoffee.com/elldia1222w)
 
 ## Getting started
 

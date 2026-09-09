@@ -150,7 +150,13 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         : (position.pixels / position.maxScrollExtent).clamp(0, 1);
 
     final last = _lastScrollPixels;
-    if (last != null) _uiVisibility.feed(position.pixels - last);
+    // Scrolling through search results shouldn't hide the app bar — the
+    // search field and match counter live there, and closing search (the
+    // X button) is the only thing that should hand control back to the
+    // normal scroll-hide behavior.
+    if (last != null && !_searchActive) {
+      _uiVisibility.feed(position.pixels - last);
+    }
     _lastScrollPixels = position.pixels;
 
     _saveDebounce?.cancel();
@@ -484,7 +490,12 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
             if (v == 'bookmark') _addBookmark();
             if (v == 'saved') _openSavedItems();
             if (v == 'settings') showReadingSettingsSheet(context);
-            if (v == 'search') setState(() => _searchActive = true);
+            if (v == 'search') {
+              setState(() {
+                _searchActive = true;
+                _uiVisible = true;
+              });
+            }
           },
           itemBuilder: (context) => [
             PopupMenuItem(
@@ -534,7 +545,10 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         IconButton(
           tooltip: tr('search'),
           icon: const Icon(Icons.search),
-          onPressed: () => setState(() => _searchActive = true),
+          onPressed: () => setState(() {
+            _searchActive = true;
+            _uiVisible = true;
+          }),
         ),
     ];
   }

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/strings.dart';
 import 'glass.dart';
 
-/// A small "buy me a coffee" appreciation button — purely a friendly
-/// message, no payment processing (that would need a real backend/merchant
-/// account this project doesn't have).
+final _buyMeACoffeeUrl = Uri.parse('https://buymeacoffee.com/elldia1222w');
+
+/// A "buy me a coffee" appreciation button — opens the developer's real
+/// Buy Me a Coffee page in a new tab. No payment is handled by this app
+/// itself; it's just a link out to that external service.
 class CoffeeButton extends StatelessWidget {
   const CoffeeButton({super.key});
 
@@ -42,9 +45,17 @@ class CoffeeButton extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(tr('coffee_thanks')),
+                      onPressed: () => launchUrl(
+                        _buyMeACoffeeUrl,
+                        webOnlyWindowName: '_blank',
+                      ),
+                      child: Text(tr('coffee_buy')),
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(tr('coffee_thanks')),
                   ),
                 ],
               ),

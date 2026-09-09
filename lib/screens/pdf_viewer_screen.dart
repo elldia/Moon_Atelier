@@ -436,7 +436,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                               if (v == 'bookmark') _addBookmark();
                               if (v == 'saved') _openSavedItems();
                               if (v == 'search') {
-                                setState(() => _searchActive = true);
+                                setState(() {
+                                  _searchActive = true;
+                                  _uiVisible = true;
+                                });
                               }
                             },
                             itemBuilder: (context) => [
@@ -493,8 +496,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                             IconButton(
                               tooltip: tr('search'),
                               icon: const Icon(Icons.search),
-                              onPressed: () =>
-                                  setState(() => _searchActive = true),
+                              onPressed: () => setState(() {
+                                _searchActive = true;
+                                _uiVisible = true;
+                              }),
                             ),
                         ],
                 ),
@@ -509,8 +514,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 setState(() => _pendingJumpPage = null);
               }
             },
-            onInteractionUpdate: (details) =>
-                _uiVisibility.feed(-details.focalPointDelta.dy),
+            // Panning through search results shouldn't hide the app bar —
+            // closing search (the X button) is what hands control back to
+            // the normal scroll-hide behavior.
+            onInteractionUpdate: (details) => _searchActive
+                ? null
+                : _uiVisibility.feed(-details.focalPointDelta.dy),
             builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
               options: const DefaultBuilderOptions(),
               documentLoaderBuilder: (context) =>
