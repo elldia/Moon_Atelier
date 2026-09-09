@@ -439,7 +439,7 @@ const _dict = <String, List<String>>{
   ],
 
   // Reading settings dialog
-  'reading_settings_title': ['읽기 설정', 'Reading Settings', '読書設定', '阅读设置'],
+  'reading_settings_title': ['설정', 'Reading Settings', '読書設定', '阅读设置'],
   'reset_defaults': ['기본값으로', 'Reset to defaults', 'デフォルトに戻す', '恢复默认设置'],
   'display_mode': ['화면 모드', 'Display Mode', '表示モード', '显示模式'],
   'reading_progress_section': ['읽기 진행률', 'Reading Progress', '読書の進捗', '阅读进度'],
