@@ -576,6 +576,12 @@ const _dict = <String, List<String>>{
   ],
   'backup_download': ['바로 다운받기', 'Download Now', '今すぐダウンロード', '立即下载'],
   'backup_share_email': ['메일로 보내기', 'Send by Email', 'メールで送る', '通过邮件发送'],
+  'backup_share_email_mobile_only': [
+    '메일로 보내기는 모바일에서만 지원됩니다.',
+    'Send by Email is only supported on mobile.',
+    'メールで送るはモバイルのみ対応しています。',
+    '通过邮件发送仅支持移动端。',
+  ],
   'backup_done': ['백업 파일을 저장했어요.', 'Backup saved.', 'バックアップを保存しました。', '备份文件已保存。'],
   'backup_email_subject': [
     'Moon Atelier 백업',

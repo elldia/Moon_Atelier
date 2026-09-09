@@ -328,6 +328,11 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tr('backup_share_email_mobile_only'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
