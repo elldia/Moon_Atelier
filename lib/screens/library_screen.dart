@@ -68,11 +68,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final Set<String> _selectedBookIds = {};
   final Set<String> _selectedFolderIds = {};
 
-  // Temporary on-screen diagnostic for the mobile "add file" hang report —
-  // shows exactly which step of the pick/read/save pipeline is in progress
-  // or failed, since we have no console access on the reporter's device.
-  final ValueNotifier<String> _debugStatus = ValueNotifier('');
-
   // Anchors the onboarding overlay's spotlight to each button's real
   // on-screen position.
   final _addKey = GlobalKey();
@@ -140,7 +135,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    _debugStatus.dispose();
     super.dispose();
   }
 
@@ -155,7 +149,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _pickBook() async {
     setState(() => _isPicking = true);
-    _debugStatus.value = '1) 파일 선택창 여는 중...';
     try {
       // pickFileWithWatchdog keeps file_picker's own blur-triggered
       // auto-cancel disabled (its hardcoded 500ms grace period was too
@@ -183,10 +176,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onTimeout: () => throw TimeoutException('file picker'),
           );
       if (file == null) {
-        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
         return;
       }
-      _debugStatus.value = '2) 선택됨: ${file.name} — 읽는 중...';
 
       final bytes = await file.readAsBytes().timeout(
         const Duration(seconds: 20),
@@ -198,14 +189,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         bytes: bytes,
         extension: file.extension,
       );
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
-      _debugStatus.value = '(실패: 시간 초과 — $e)';
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
     } catch (e) {
       if (!mounted) return;
-      _debugStatus.value = '(실패: $e)';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
       );
@@ -222,7 +211,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     setState(() => _isPicking = true);
-    _debugStatus.value = '1) Dropbox 선택창 여는 중...';
     try {
       final picked =
           await chooseDropboxFile(
@@ -241,10 +229,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onTimeout: () => throw TimeoutException('Dropbox chooser'),
           );
       if (picked == null) {
-        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
         return;
       }
-      _debugStatus.value = '2) 선택됨: ${picked.name} — 다운로드 중...';
 
       final response = await http
           .get(Uri.parse(picked.link))
@@ -265,14 +251,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         bytes: response.bodyBytes,
         extension: extension,
       );
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
-      _debugStatus.value = '(실패: 시간 초과 — $e)';
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
     } catch (e) {
       if (!mounted) return;
-      _debugStatus.value = '(실패: $e)';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
       );
@@ -289,7 +273,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     setState(() => _isPicking = true);
-    _debugStatus.value = '1) OneDrive 선택창 여는 중...';
     try {
       final picked =
           await chooseOneDriveFile(
@@ -300,10 +283,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onTimeout: () => throw TimeoutException('OneDrive picker'),
           );
       if (picked == null) {
-        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
         return;
       }
-      _debugStatus.value = '2) 선택됨: ${picked.name} — 다운로드 중...';
 
       final response = await http
           .get(Uri.parse(picked.downloadUrl))
@@ -325,14 +306,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         bytes: response.bodyBytes,
         extension: extension,
       );
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
-      _debugStatus.value = '(실패: 시간 초과 — $e)';
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
     } catch (e) {
       if (!mounted) return;
-      _debugStatus.value = '(실패: $e)';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
       );
@@ -343,8 +322,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   /// Shared tail end of local-file, Dropbox and OneDrive picking: resolve a
   /// format from the extension (falling back to peeking inside a .zip),
-  /// then save and open the book. Assumes [_debugStatus]/[_isPicking] are
-  /// already being managed by the caller.
+  /// then save and open the book. Assumes [_isPicking] is already being
+  /// managed by the caller.
   Future<void> _registerPickedBytes({
     required String name,
     required Uint8List bytes,
@@ -354,7 +333,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     var format = Book.formatFromExtension(extension);
     var resolvedBytes = bytes;
     if (format == null && extension?.toLowerCase() == 'zip') {
-      _debugStatus.value = '2.5) ZIP 안에서 지원 형식 찾는 중...';
       final found = findSupportedFileInZip(bytes);
       if (found != null) {
         resolvedName = found.name;
@@ -365,20 +343,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     if (format == null) {
       if (!mounted) return;
-      _debugStatus.value = '(실패: 지원하지 않는 형식)';
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
       return;
     }
 
-    _debugStatus.value = '4) ${resolvedBytes.length}바이트 — 저장소에 저장 중...';
     await _addBook(
       name: resolvedName,
       format: format,
       bytes: resolvedBytes,
       open: true,
     );
-    _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
   }
 
   Future<void> _addFromClipboard() async {
@@ -563,7 +538,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _showAddMenu() async {
-    _debugStatus.value = '0) + 버튼 눌림';
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -604,20 +578,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
       // dialog's own onTap (see file_source_dialog.dart) rather than after
       // this awaited Future resolves, so the file chooser stays inside the
       // tap's transient activation on mobile browsers.
-      _debugStatus.value = '0.5) 파일 등록 선택됨 — 소스 선택창 여는 중';
       final source = await showFileSourceDialog(
         context,
         onPickLocal: () {
-          _debugStatus.value = '0.9) 내 컴퓨터에서 선택 눌림';
           unawaited(_pickBook());
         },
         onPickClipboard: () => unawaited(_addFromClipboard()),
         onPickDropbox: () {
-          _debugStatus.value = '0.9) Dropbox에서 선택 눌림';
           unawaited(_pickFromDropbox());
         },
         onPickOneDrive: () {
-          _debugStatus.value = '0.9) OneDrive에서 선택 눌림';
           unawaited(_pickFromOneDrive());
         },
       );
@@ -1387,24 +1357,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ],
                 ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: ValueListenableBuilder<String>(
-                valueListenable: _debugStatus,
-                builder: (context, status, _) => Text(
-                  status.isEmpty ? tr('large_file_delay_hint') : status,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: status.isEmpty
-                        ? Theme.of(context).hintColor
-                        : Theme.of(context).colorScheme.primary,
-                    fontWeight: status.isEmpty ? null : FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
         );
       },
     );

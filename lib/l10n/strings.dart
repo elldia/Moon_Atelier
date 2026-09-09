@@ -188,12 +188,6 @@ const _dict = <String, List<String>>{
   ],
   'file_count': ['{n}개 파일', '{n} files', '{n}個のファイル', '{n}个文件'],
   'delete_folder': ['폴더 삭제', 'Delete folder', 'フォルダ削除', '删除文件夹'],
-  'large_file_delay_hint': [
-    '글자수가 많은 텍스트파일은 첫 실행 시 지연시간이 생길 수 있습니다.',
-    'Very large text files may take a moment to load the first time.',
-    '文字数の多いテキストファイルは初回読み込みに時間がかかることがあります。',
-    '字数较多的文本文件首次打开时可能需要一些加载时间。',
-  ],
   'rename': ['이름 바꾸기', 'Rename', '名前を変更', '重命名'],
   'file_name_hint': ['파일 이름', 'File name', 'ファイル名', '文件名'],
   'show_format_icon_title': [
