@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../data/folder_store.dart';
@@ -12,6 +13,7 @@ import '../models/folder.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../utils/docx_text_extractor.dart';
+import '../utils/dropbox_picker.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/file_pick_watchdog.dart';
 import '../utils/musicxml_extractor.dart';
@@ -188,35 +190,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         onTimeout: () => throw TimeoutException('reading the picked file'),
       );
 
-      var name = file.name;
-      var format = Book.formatFromExtension(file.extension);
-      var resolvedBytes = bytes;
-      if (format == null && file.extension?.toLowerCase() == 'zip') {
-        _debugStatus.value = '2.5) ZIP 안에서 지원 형식 찾는 중...';
-        final found = findSupportedFileInZip(bytes);
-        if (found != null) {
-          name = found.name;
-          format = found.format;
-          resolvedBytes = found.bytes;
-        }
-      }
-
-      if (format == null) {
-        if (!mounted) return;
-        _debugStatus.value = '(실패: 지원하지 않는 형식)';
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
-        return;
-      }
-
-      _debugStatus.value = '4) ${resolvedBytes.length}바이트 — 저장소에 저장 중...';
-      await _addBook(
-        name: name,
-        format: format,
-        bytes: resolvedBytes,
-        open: true,
+      await _registerPickedBytes(
+        name: file.name,
+        bytes: bytes,
+        extension: file.extension,
       );
-      _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
     } on TimeoutException catch (e) {
       if (!mounted) return;
       _debugStatus.value = '(실패: 시간 초과 — $e)';
@@ -231,6 +209,113 @@ class _LibraryScreenState extends State<LibraryScreen> {
     } finally {
       if (mounted) setState(() => _isPicking = false);
     }
+  }
+
+  Future<void> _pickFromDropbox() async {
+    if (!isDropboxChooserAvailable) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('dropbox_not_configured'))));
+      return;
+    }
+    setState(() => _isPicking = true);
+    _debugStatus.value = '1) Dropbox 선택창 여는 중...';
+    try {
+      final picked =
+          await chooseDropboxFile(
+            extensions: [
+              '.epub',
+              '.pdf',
+              '.txt',
+              '.docx',
+              '.rtf',
+              '.musicxml',
+              '.mxl',
+              '.zip',
+            ],
+          ).timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw TimeoutException('Dropbox chooser'),
+          );
+      if (picked == null) {
+        _debugStatus.value = '(취소됨: 파일을 선택하지 않음)';
+        return;
+      }
+      _debugStatus.value = '2) 선택됨: ${picked.name} — 다운로드 중...';
+
+      final response = await http
+          .get(Uri.parse(picked.link))
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('downloading from Dropbox'),
+          );
+      if (response.statusCode != 200) {
+        throw Exception('Dropbox download failed (${response.statusCode})');
+      }
+
+      final dotIndex = picked.name.lastIndexOf('.');
+      final extension = dotIndex < 0
+          ? null
+          : picked.name.substring(dotIndex + 1);
+      await _registerPickedBytes(
+        name: picked.name,
+        bytes: response.bodyBytes,
+        extension: extension,
+      );
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: 시간 초과 — $e)';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('pick_timeout'))));
+    } catch (e) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: $e)';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  /// Shared tail end of both local-file and Dropbox picking: resolve a
+  /// format from the extension (falling back to peeking inside a .zip),
+  /// then save and open the book. Assumes [_debugStatus]/[_isPicking] are
+  /// already being managed by the caller.
+  Future<void> _registerPickedBytes({
+    required String name,
+    required Uint8List bytes,
+    required String? extension,
+  }) async {
+    var resolvedName = name;
+    var format = Book.formatFromExtension(extension);
+    var resolvedBytes = bytes;
+    if (format == null && extension?.toLowerCase() == 'zip') {
+      _debugStatus.value = '2.5) ZIP 안에서 지원 형식 찾는 중...';
+      final found = findSupportedFileInZip(bytes);
+      if (found != null) {
+        resolvedName = found.name;
+        format = found.format;
+        resolvedBytes = found.bytes;
+      }
+    }
+
+    if (format == null) {
+      if (!mounted) return;
+      _debugStatus.value = '(실패: 지원하지 않는 형식)';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
+      return;
+    }
+
+    _debugStatus.value = '4) ${resolvedBytes.length}바이트 — 저장소에 저장 중...';
+    await _addBook(
+      name: resolvedName,
+      format: format,
+      bytes: resolvedBytes,
+      open: true,
+    );
+    _debugStatus.value = '5) 저장 완료, 리더 화면으로 이동함';
   }
 
   Future<void> _addFromClipboard() async {
@@ -459,15 +544,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
           unawaited(_pickBook());
         },
         onPickClipboard: () => unawaited(_addFromClipboard()),
+        onPickDropbox: () {
+          _debugStatus.value = '0.9) Dropbox에서 선택 눌림';
+          unawaited(_pickFromDropbox());
+        },
       );
       if (!mounted || source == null) return;
       switch (source) {
         case FileSource.local:
         case FileSource.clipboard:
+        case FileSource.dropbox:
           break; // already handled synchronously via the callbacks above
         case FileSource.oneDrive:
-        case FileSource.dropbox:
-        case FileSource.cloudApp:
         case FileSource.wifiTransfer:
         case FileSource.ftp:
           ScaffoldMessenger.of(context)
@@ -1021,10 +1109,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.auto_stories,
-                        size: 64,
-                        color: Colors.grey,
+                      Image.network(
+                        'icons/sleeping.png',
+                        width: 64,
+                        height: 64,
                       ),
                       const SizedBox(height: 16),
                       Text(

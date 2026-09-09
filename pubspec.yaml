@@ -50,6 +50,7 @@ dependencies:
   web: ^1.1.1
   google_fonts: ^6.2.1
   url_launcher: ^6.3.1
+  http: ^1.2.2
   # Direct deps (otherwise only transitive via epub_view) so the EPUB
   # viewer's search/TTS can independently parse chapter HTML into plain
   # text — epub_view itself only exposes rendering, not raw chapter text.

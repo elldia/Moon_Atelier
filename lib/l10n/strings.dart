@@ -346,7 +346,12 @@ const _dict = <String, List<String>>{
   ],
   'source_onedrive': ['원드라이브', 'OneDrive', 'OneDrive', 'OneDrive'],
   'source_dropbox': ['Dropbox', 'Dropbox', 'Dropbox', 'Dropbox'],
-  'source_cloudapp': ['클라우드 앱', 'Cloud App', 'クラウドアプリ', '云应用'],
+  'dropbox_not_configured': [
+    'Dropbox 연동이 아직 설정되지 않았습니다.',
+    'Dropbox integration is not configured yet.',
+    'Dropbox連携がまだ設定されていません。',
+    'Dropbox 集成尚未配置。',
+  ],
   'source_wifi': ['와이파이 전송', 'Wi-Fi Transfer', 'Wi-Fi転送', 'Wi-Fi传输'],
   'source_ftp': ['FTP', 'FTP', 'FTP', 'FTP'],
   'coming_soon': ['준비 중', 'Coming soon', '準備中', '敬请期待'],

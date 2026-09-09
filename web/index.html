@@ -54,6 +54,16 @@
   }
   </script>
   <!--
+    Dropbox Chooser (https://www.dropbox.com/developers/chooser) — a
+    client-side-only file picker widget, no backend needed. Requires a free
+    app key from https://www.dropbox.com/developers/apps (create an app,
+    "Chooser/Saver/Embedder" permission type). Replace the placeholder below
+    with your real key, or the "Dropbox" library simply won't be defined and
+    the app's Dropbox import option will show a "not configured" message.
+  -->
+  <script id="dropboxjs" src="https://www.dropbox.com/static/api/2/dropins.js" data-app-key="YOUR_DROPBOX_APP_KEY"></script>
+
+  <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
     or to give the user feedback during the initialization process.

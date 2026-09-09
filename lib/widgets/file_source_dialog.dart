@@ -3,43 +3,37 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import 'glass.dart';
 
-/// Where the user wants to bring a new file in from. 'local' and
-/// 'clipboard' are the only sources this app can actually reach without a
-/// backend/cloud API key — the rest report back to the caller as chosen,
-/// which shows a "coming soon" message.
-enum FileSource {
-  local,
-  clipboard,
-  oneDrive,
-  dropbox,
-  cloudApp,
-  wifiTransfer,
-  ftp,
-}
+/// Where the user wants to bring a new file in from. 'local', 'clipboard'
+/// and 'dropbox' are the only sources this app can actually reach without a
+/// backend — the rest report back to the caller as chosen, which shows a
+/// "coming soon" message.
+enum FileSource { local, clipboard, dropbox, oneDrive, wifiTransfer, ftp }
 
 /// Shows the "where do you want to add a file from" picker.
 ///
-/// [onPickLocal] and [onPickClipboard] are invoked synchronously from
-/// inside the tapped [ListTile]'s `onTap`, before the dialog is popped —
-/// not after awaiting this function's returned Future. That matters
-/// specifically for [onPickLocal]: browsers only allow a synthetic
-/// `<input type="file">.click()` to open the native file chooser while
-/// still inside the same synchronous call stack as a real user gesture
-/// ("transient activation"). Desktop browsers are lenient about a short
-/// async gap, but mobile browsers (iOS Safari in particular) are not —
-/// going through an awaited `Navigator.pop()` + dialog-close animation
-/// first silently drops the file chooser, which looks like the "add
-/// file" button doing nothing / spinning forever on mobile.
+/// [onPickLocal], [onPickClipboard] and [onPickDropbox] are invoked
+/// synchronously from inside the tapped [ListTile]'s `onTap`, before the
+/// dialog is popped — not after awaiting this function's returned Future.
+/// That matters for [onPickLocal] and [onPickDropbox] specifically: both
+/// open a native/third-party picker (a `<input type="file">.click()`, or
+/// Dropbox's own popup window) that browsers only allow while still inside
+/// the same synchronous call stack as a real user gesture ("transient
+/// activation"). Desktop browsers are lenient about a short async gap, but
+/// mobile browsers (iOS Safari in particular) are not — going through an
+/// awaited `Navigator.pop()` + dialog-close animation first silently drops
+/// the picker, which looks like the button doing nothing / spinning forever.
 Future<FileSource?> showFileSourceDialog(
   BuildContext context, {
   required VoidCallback onPickLocal,
   required VoidCallback onPickClipboard,
+  required VoidCallback onPickDropbox,
 }) {
   return showDialog<FileSource>(
     context: context,
     builder: (context) => _FileSourceDialog(
       onPickLocal: onPickLocal,
       onPickClipboard: onPickClipboard,
+      onPickDropbox: onPickDropbox,
     ),
   );
 }
@@ -47,10 +41,12 @@ Future<FileSource?> showFileSourceDialog(
 class _FileSourceDialog extends StatelessWidget {
   final VoidCallback onPickLocal;
   final VoidCallback onPickClipboard;
+  final VoidCallback onPickDropbox;
 
   const _FileSourceDialog({
     required this.onPickLocal,
     required this.onPickClipboard,
+    required this.onPickDropbox,
   });
 
   static const _options = [
@@ -61,9 +57,8 @@ class _FileSourceDialog extends StatelessWidget {
       'source_clipboard',
       true,
     ),
+    (FileSource.dropbox, Icons.cloud_queue_outlined, 'source_dropbox', true),
     (FileSource.oneDrive, Icons.cloud_outlined, 'source_onedrive', false),
-    (FileSource.dropbox, Icons.cloud_queue_outlined, 'source_dropbox', false),
-    (FileSource.cloudApp, Icons.cloud_sync_outlined, 'source_cloudapp', false),
     (FileSource.wifiTransfer, Icons.wifi_tethering, 'source_wifi', false),
     (FileSource.ftp, Icons.dns_outlined, 'source_ftp', false),
   ];
@@ -126,6 +121,14 @@ class _FileSourceDialog extends StatelessWidget {
                               break;
                             case FileSource.clipboard:
                               onPickClipboard();
+                              Navigator.of(context).pop();
+                              break;
+                            case FileSource.dropbox:
+                              // Same transient-activation reasoning as
+                              // local: Dropbox.choose() opens a real popup
+                              // window, which browsers can block if it's
+                              // not triggered synchronously from the tap.
+                              onPickDropbox();
                               Navigator.of(context).pop();
                               break;
                             default:
