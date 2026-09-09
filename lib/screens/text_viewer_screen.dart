@@ -251,11 +251,11 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
         .showSnackBar(SnackBar(content: Text(tr('bookmark_added'))));
   }
 
-  void _seekToRatio(double ratio) {
+  void _seekToRatio(double ratio, {double topMargin = 0}) {
     if (!_scrollController.hasClients) return;
-    _scrollController.jumpTo(
-      ratio.clamp(0.0, 1.0) * _scrollController.position.maxScrollExtent,
-    );
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final target = ratio.clamp(0.0, 1.0) * maxExtent - topMargin;
+    _scrollController.jumpTo(target.clamp(0.0, maxExtent));
   }
 
   // TXT/DOCX/RTF have no literal "page" concept — chunks (already shown in
@@ -323,7 +323,15 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
       });
       return;
     }
-    if (_chunks.length > 1) _seekToRatio(index / (_chunks.length - 1));
+    if (_chunks.length > 1) {
+      // Landing the spoken paragraph flush at the very top edge puts it
+      // right under the floating glass app bar/toolbar; leave a quarter of
+      // the viewport as headroom so it's actually visible.
+      final viewport = _scrollController.hasClients
+          ? _scrollController.position.viewportDimension
+          : 0.0;
+      _seekToRatio(index / (_chunks.length - 1), topMargin: viewport * 0.25);
+    }
     setState(() {
       _isSpeaking = true;
       _speakingChunkIndex = index;
