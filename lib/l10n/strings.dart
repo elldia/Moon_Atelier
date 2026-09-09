@@ -333,7 +333,7 @@ const _dict = <String, List<String>>{
   // File source dialog
   'import_title': ['파일 가져오기', 'Import File', 'ファイルを取り込む', '导入文件'],
   'source_local': [
-    '내 컴퓨터 or 핸드폰에서 가져오기',
+    '내 컴퓨터 or 모바일에서 가져오기',
     'Import from this computer or phone',
     'このパソコンまたはスマホから取り込む',
     '从这台电脑或手机导入',
