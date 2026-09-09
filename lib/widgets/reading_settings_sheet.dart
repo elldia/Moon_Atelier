@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
@@ -29,6 +30,7 @@ class _ReadingSettingsDialog extends StatefulWidget {
 class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   late ReadingSettings _draft = ReadingSettingsController.instance.value;
   bool _backingUp = false;
+  bool _emailing = false;
 
   @override
   void initState() {
@@ -52,7 +54,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
     setState(() => _draft = updater(_draft));
   }
 
-  Future<void> _backup() async {
+  Future<void> _downloadBackup() async {
     setState(() => _backingUp = true);
     try {
       final bytes = await Future(BackupExporter.build);
@@ -73,6 +75,34 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
       );
     } finally {
       if (mounted) setState(() => _backingUp = false);
+    }
+  }
+
+  Future<void> _emailBackup() async {
+    setState(() => _emailing = true);
+    try {
+      final bytes = await Future(BackupExporter.build);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              bytes,
+              name: BackupExporter.suggestedFileName(),
+              mimeType: 'application/zip',
+            ),
+          ],
+          subject: tr('backup_email_subject'),
+          text: tr('backup_email_body'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('backup_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _emailing = false);
     }
   }
 
@@ -253,21 +283,50 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _backingUp ? null : _backup,
-                          icon: _backingUp
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.download_outlined),
-                          label: Text(tr('backup_download')),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _backingUp || _emailing
+                                  ? null
+                                  : _downloadBackup,
+                              icon: _backingUp
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.download_outlined),
+                              label: Text(
+                                tr('backup_download'),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _backingUp || _emailing
+                                  ? null
+                                  : _emailBackup,
+                              icon: _emailing
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.email_outlined),
+                              label: Text(
+                                tr('backup_share_email'),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

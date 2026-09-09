@@ -574,8 +574,21 @@ const _dict = <String, List<String>>{
     '書いたメモ、登録したファイル、ブックマーク、ハイライトをまとめて1つのファイルでダウンロードします。',
     '将你写的笔记、导入的文件、书签和高亮一起下载为一个文件。',
   ],
-  'backup_download': ['백업 파일 내려받기', 'Download Backup', 'バックアップをダウンロード', '下载备份文件'],
+  'backup_download': ['바로 다운받기', 'Download Now', '今すぐダウンロード', '立即下载'],
+  'backup_share_email': ['메일로 보내기', 'Send by Email', 'メールで送る', '通过邮件发送'],
   'backup_done': ['백업 파일을 저장했어요.', 'Backup saved.', 'バックアップを保存しました。', '备份文件已保存。'],
+  'backup_email_subject': [
+    'Moon Atelier 백업',
+    'Moon Atelier Backup',
+    'Moon Atelier バックアップ',
+    'Moon Atelier 备份',
+  ],
+  'backup_email_body': [
+    '내 서재 백업 파일을 첨부했어요.',
+    "I've attached my library backup file.",
+    '書斎のバックアップファイルを添付しました。',
+    '已附上我的书房备份文件。',
+  ],
   'backup_failed': [
     '백업에 실패했습니다: {error}',
     'Backup failed: {error}',

@@ -62,6 +62,7 @@ dependencies:
   pdfrx: ^2.6.1
   webview_flutter: ^4.14.1
   flutter_markdown_plus: ^1.0.12
+  share_plus: ^13.3.0
 
 dependency_overrides:
   # flutter_html 3.0.0 (via epub_view) calls a private query_selector API
