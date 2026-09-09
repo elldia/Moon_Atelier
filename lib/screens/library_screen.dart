@@ -28,6 +28,7 @@ import '../widgets/onboarding_overlay.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'epub_viewer_screen.dart';
 import 'music_score_viewer_screen.dart';
+import 'note_editor_screen.dart';
 import 'pdf_viewer_screen.dart';
 import 'text_viewer_screen.dart';
 
@@ -581,6 +582,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   onTap: () => Navigator.of(context).pop('file'),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.edit_note),
+                  title: Text(tr('note_create')),
+                  onTap: () => Navigator.of(context).pop('note'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.create_new_folder_outlined),
                   title: Text(tr('folder_create')),
                   onTap: () => Navigator.of(context).pop('folder'),
@@ -627,9 +633,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
               .showSnackBar(SnackBar(content: Text(tr('import_not_ready'))));
           break;
       }
+    } else if (action == 'note') {
+      await _createNote();
     } else if (action == 'folder') {
       await _createFolder();
     }
+  }
+
+  Future<void> _createNote() async {
+    final result = await Navigator.of(
+      context,
+    ).push<NoteResult>(MaterialPageRoute(builder: (_) => const NoteEditorScreen()));
+    if (!mounted || result == null) return;
+    await _addBook(
+      name: result.title,
+      format: BookFormat.note,
+      bytes: Uint8List.fromList(utf8.encode(result.content)),
+      open: false,
+    );
   }
 
   Future<void> _updateBook(Book updated) async {
@@ -842,6 +863,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
           );
         }
         break;
+      case BookFormat.note:
+        Navigator.of(context)
+            .push<NoteResult>(
+              MaterialPageRoute(
+                builder: (_) => NoteEditorScreen(
+                  initialTitle: book.name,
+                  initialContent: decodeTextBytes(book.bytes),
+                ),
+              ),
+            )
+            .then((result) {
+              if (result == null || !mounted) return;
+              current = current.copyWith(
+                name: result.title,
+                bytes: Uint8List.fromList(utf8.encode(result.content)),
+              );
+              _updateBook(current);
+            });
+        break;
     }
   }
 
@@ -897,6 +937,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return Icons.article;
       case BookFormat.musicXml:
         return Icons.music_note;
+      case BookFormat.note:
+        return Icons.edit_note;
     }
   }
 

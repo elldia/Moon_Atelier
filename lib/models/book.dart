@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-enum BookFormat { epub, pdf, txt, docx, rtf, musicXml }
+enum BookFormat { epub, pdf, txt, docx, rtf, musicXml, note }
 
 class Book {
   final String id;
@@ -38,6 +38,7 @@ class Book {
 
   Book copyWith({
     String? name,
+    Uint8List? bytes,
     DateTime? lastOpenedAt,
     Object? position,
     double? progress,
@@ -48,7 +49,7 @@ class Book {
       id: id,
       name: name ?? this.name,
       format: format,
-      bytes: bytes,
+      bytes: bytes ?? this.bytes,
       addedAt: addedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
       position: position ?? this.position,

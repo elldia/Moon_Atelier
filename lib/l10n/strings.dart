@@ -510,6 +510,26 @@ const _dict = <String, List<String>>{
   'sort_nameDesc': ['이름순 (역순)', 'Name (Z-A)', '名前順(Z-A)', '名称(Z-A)'],
   'sort_addedNewest': ['최신 등록순', 'Newest Added', '追加日が新しい順', '最新添加'],
   'sort_addedOldest': ['오래된 순', 'Oldest Added', '追加日が古い順', '最早添加'],
+
+  // Note editor
+  'save': ['저장', 'Save', '保存', '保存'],
+  'note_create': ['새 글 작성', 'Write New Note', '新規作成', '新建笔记'],
+  'note_title_hint': ['제목 없음', 'Untitled', 'タイトルなし', '无标题'],
+  'note_untitled': ['제목 없음', 'Untitled', 'タイトルなし', '无标题'],
+  'note_body_hint': [
+    '내용을 입력하세요 — # 제목, ## 부제목, * 목록, `코드` 처럼 마크다운 문법을 사용할 수 있어요.',
+    'Start writing — you can use Markdown, like # heading, ## subheading, * list, `code`.',
+    '入力してください — # 見出し、## 小見出し、* リスト、`コード` のようなMarkdown記法が使えます。',
+    '开始输入 — 支持 Markdown 语法，如 # 标题、## 副标题、* 列表、`代码`。',
+  ],
+  'note_preview_empty': [
+    '_미리보기할 내용이 없습니다._',
+    '_Nothing to preview yet._',
+    '_プレビューする内容がありません。_',
+    '_没有可预览的内容。_',
+  ],
+  'note_edit_tab': ['편집', 'Edit', '編集', '编辑'],
+  'note_preview_tab': ['미리보기', 'Preview', 'プレビュー', '预览'],
 };
 
 String fontLabel(ReadingFont f) => tr('font_${f.name}');
