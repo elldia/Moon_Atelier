@@ -12,18 +12,13 @@ import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
 import '../widgets/glass.dart';
 import '../utils/scroll_ui_visibility.dart';
+import '../utils/text_chunker.dart';
 import '../utils/tts_reader.dart';
 import '../widgets/page_jump_row.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
-
-/// Max characters per rendered chunk. A single multi-megabyte string handed to
-/// one Text/SelectableText widget can overwhelm the web text-layout engine on
-/// very large files (a 4MB+ novel crashes CanvasKit), so long content is split
-/// into bounded chunks and rendered in a virtualized, lazily-built list.
-const _maxChunkLength = 2000;
 
 /// Shared plain-text reader used for .txt, .docx and .rtf (post-extraction)
 /// content. Font, spacing, margins, indent, background and theme all come
@@ -99,7 +94,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   @override
   void initState() {
     super.initState();
-    _chunks = _splitIntoChunks(widget.content);
+    _chunks = splitIntoChunks(widget.content);
     _loadHighlights();
 
     final offset = widget.initialOffset;
@@ -121,26 +116,6 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     for (final h in HighlightStore.forBook(widget.bookId)) {
       _highlightsByChunk.putIfAbsent(h.chunkIndex, () => []).add(h);
     }
-  }
-
-  static List<String> _splitIntoChunks(String content) {
-    if (content.isEmpty) return const [];
-    final chunks = <String>[];
-    for (final paragraph in content.split('\n')) {
-      if (paragraph.length <= _maxChunkLength) {
-        chunks.add(paragraph);
-        continue;
-      }
-      for (var i = 0; i < paragraph.length; i += _maxChunkLength) {
-        chunks.add(
-          paragraph.substring(
-            i,
-            (i + _maxChunkLength).clamp(0, paragraph.length),
-          ),
-        );
-      }
-    }
-    return chunks;
   }
 
   void _onScroll() {

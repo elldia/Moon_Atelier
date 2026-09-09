@@ -886,6 +886,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => NoteViewerScreen(
+              bookId: book.id,
               title: book.name,
               content: decodeTextBytes(book.bytes),
             ),
