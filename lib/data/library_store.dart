@@ -74,6 +74,7 @@ class LibraryStore {
     'bytes': book.bytes,
     'addedAt': book.addedAt.toIso8601String(),
     'lastOpenedAt': book.lastOpenedAt?.toIso8601String(),
+    'modifiedAt': book.modifiedAt?.toIso8601String(),
     'position': book.position,
     'progress': book.progress,
     'folderId': book.folderId,
@@ -81,6 +82,7 @@ class LibraryStore {
 
   static Book _fromMap(String id, Map raw) {
     final lastOpenedRaw = raw['lastOpenedAt'] as String?;
+    final modifiedRaw = raw['modifiedAt'] as String?;
     return Book(
       id: id,
       name: raw['name'] as String,
@@ -90,6 +92,7 @@ class LibraryStore {
       lastOpenedAt: lastOpenedRaw != null
           ? DateTime.parse(lastOpenedRaw)
           : null,
+      modifiedAt: modifiedRaw != null ? DateTime.parse(modifiedRaw) : null,
       position: raw['position'],
       progress: (raw['progress'] as num?)?.toDouble(),
       folderId: raw['folderId'] as String?,

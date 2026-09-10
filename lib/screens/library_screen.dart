@@ -699,6 +699,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       book.copyWith(
         name: result.title,
         bytes: Uint8List.fromList(utf8.encode(result.content)),
+        modifiedAt: DateTime.now(),
       ),
     );
   }
@@ -989,6 +990,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// format (an exact character count would mean re-parsing DOCX/RTF or
   /// isn't meaningful for EPUB/PDF). Null until the book has been opened
   /// at least once.
+  /// Note's creation/edit date as "yyyy.mm.dd" — the modified date once
+  /// [Book.modifiedAt] is set by an edit, the added date until then.
+  String _noteDateLabel(Book book) {
+    final date = book.modifiedAt ?? book.addedAt;
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}.$month.$day';
+  }
+
   String? _progressLabel(Book book) {
     final progress = book.progress;
     if (progress == null) return null;
@@ -1357,6 +1367,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         subtitle: Text(
                           [
                             book.format.name.toUpperCase(),
+                            if (book.format == BookFormat.note)
+                              _noteDateLabel(book),
                             if (_progressLabel(book) != null)
                               _progressLabel(book)!,
                           ].join(' · '),

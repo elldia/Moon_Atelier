@@ -10,6 +10,11 @@ class Book {
   final DateTime addedAt;
   final DateTime? lastOpenedAt;
 
+  /// Set whenever the book's own content is edited in place (currently only
+  /// [BookFormat.note] supports this). Null means it hasn't been edited
+  /// since it was added, so the library list falls back to [addedAt].
+  final DateTime? modifiedAt;
+
   /// Last reading position, meaning depends on [format]:
   /// - epub: an EPUB CFI string
   /// - pdf: 1-based page number
@@ -31,6 +36,7 @@ class Book {
     required this.bytes,
     required this.addedAt,
     this.lastOpenedAt,
+    this.modifiedAt,
     this.position,
     this.progress,
     this.folderId,
@@ -40,6 +46,7 @@ class Book {
     String? name,
     Uint8List? bytes,
     DateTime? lastOpenedAt,
+    DateTime? modifiedAt,
     Object? position,
     double? progress,
     String? folderId,
@@ -52,6 +59,7 @@ class Book {
       bytes: bytes ?? this.bytes,
       addedAt: addedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
       position: position ?? this.position,
       progress: progress ?? this.progress,
       folderId: moveToRoot ? null : (folderId ?? this.folderId),
