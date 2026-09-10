@@ -11,7 +11,6 @@ import '../models/bookmark.dart';
 import '../models/reading_settings.dart';
 import '../utils/scroll_ui_visibility.dart';
 import '../utils/text_chunker.dart';
-import '../utils/tts_reader.dart';
 import '../widgets/glass.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
@@ -20,26 +19,38 @@ const _uuid = Uuid();
 
 /// Read-only rendered view of a user-authored note (BookFormat.note) --
 /// opened when tapping the note in the library, same as any other book.
-/// Editing only happens through the library item's "..." menu ("수정"),
-/// which opens NoteEditorScreen separately; this screen has no edit entry
-/// point of its own.
+/// [onEdit] and [onDelete] let the top-right edit menu act on this note
+/// directly, without going back to the library list's own "..." menu first.
 ///
-/// Carries the same reading toolbar as the plain-text viewer (TTS, bookmark,
+/// Carries most of the plain-text viewer's reading toolbar (bookmark,
 /// reading settings, search) so a note reads the same as any imported book
-/// -- highlighting is the one thing deliberately left out, since it's
-/// anchored by character offsets into rendered plain text, which don't
-/// map cleanly back onto raw Markdown once formatting (`**bold**`, etc.)
-/// is involved.
+/// -- text-to-speech and highlighting are deliberately left out: TTS
+/// doesn't fit a screen the author is meant to read back and edit rather
+/// than listen to, and highlighting is anchored by character offsets into
+/// rendered plain text, which don't map cleanly back onto raw Markdown once
+/// formatting (`**bold**`, etc.) is involved.
 class NoteViewerScreen extends StatefulWidget {
   final String bookId;
   final String title;
   final String content;
+
+  /// Opens the note editor pre-filled with this note; called from the
+  /// top-right edit menu. The caller owns saving and popping this screen
+  /// back to the library once the edit is confirmed.
+  final VoidCallback onEdit;
+
+  /// Deletes this note (after the caller's own confirmation); called from
+  /// the top-right edit menu. The caller owns popping this screen back to
+  /// the library once the delete is confirmed.
+  final VoidCallback onDelete;
 
   const NoteViewerScreen({
     super.key,
     required this.bookId,
     required this.title,
     required this.content,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -48,7 +59,6 @@ class NoteViewerScreen extends StatefulWidget {
 
 class _NoteViewerScreenState extends State<NoteViewerScreen> {
   final _scrollController = ScrollController();
-  final _progressNotifier = ValueNotifier<double>(0);
   late final List<String> _chunks = splitIntoChunks(widget.content);
 
   bool _uiVisible = true;
@@ -56,9 +66,6 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
   late final _uiVisibility = ScrollUiVisibility(
     onChanged: (visible) => setState(() => _uiVisible = visible),
   );
-
-  bool _isSpeaking = false;
-  int? _speakingChunkIndex;
 
   static const _searchMinContentLength = 1000;
   bool _searchActive = false;
@@ -76,9 +83,6 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
 
   void _onScroll() {
     final position = _scrollController.position;
-    _progressNotifier.value = position.maxScrollExtent <= 0
-        ? 1
-        : (position.pixels / position.maxScrollExtent).clamp(0, 1);
     final last = _lastScrollPixels;
     if (last != null && !_searchActive) {
       _uiVisibility.feed(position.pixels - last);
@@ -88,12 +92,10 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
 
   @override
   void dispose() {
-    if (_isSpeaking) TtsReader.instance.stop();
     _searchDebounce?.cancel();
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _progressNotifier.dispose();
     super.dispose();
   }
 
@@ -102,70 +104,6 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
     final maxExtent = _scrollController.position.maxScrollExtent;
     final target = ratio.clamp(0.0, 1.0) * maxExtent - topMargin;
     _scrollController.jumpTo(target.clamp(0.0, maxExtent));
-  }
-
-  // --- Text-to-speech ------------------------------------------------
-
-  void _toggleSpeech() {
-    if (_isSpeaking) {
-      TtsReader.instance.stop();
-      setState(() {
-        _isSpeaking = false;
-        _speakingChunkIndex = null;
-      });
-      return;
-    }
-    final startIndex = _chunks.isEmpty
-        ? 0
-        : (_progressNotifier.value * (_chunks.length - 1)).round().clamp(
-            0,
-            _chunks.length - 1,
-          );
-    _speakChunk(startIndex);
-  }
-
-  void _speakChunk(int index) {
-    if (index >= _chunks.length) {
-      setState(() {
-        _isSpeaking = false;
-        _speakingChunkIndex = null;
-      });
-      return;
-    }
-    if (_chunks[index].trim().isEmpty) {
-      _speakChunk(index + 1);
-      return;
-    }
-    if (_chunks.length > 1) {
-      // Landing the spoken paragraph flush at the very top edge puts it
-      // right under the floating glass app bar; leave a quarter of the
-      // viewport as headroom so it's actually visible.
-      final viewport = _scrollController.hasClients
-          ? _scrollController.position.viewportDimension
-          : 0.0;
-      _seekToRatio(index / (_chunks.length - 1), topMargin: viewport * 0.25);
-    }
-    setState(() {
-      _isSpeaking = true;
-      _speakingChunkIndex = index;
-    });
-    final settings = ReadingSettingsController.instance.value;
-    TtsReader.instance.speak(
-      _chunks[index],
-      rate: settings.ttsRate,
-      voice: TtsReader.instance.findVoice(settings.ttsVoiceUri),
-      onDone: () {
-        if (!mounted || !_isSpeaking) return;
-        _speakChunk(index + 1);
-      },
-      onError: (_) {
-        if (!mounted) return;
-        setState(() {
-          _isSpeaking = false;
-          _speakingChunkIndex = null;
-        });
-      },
-    );
   }
 
   // --- Bookmarks -------------------------------------------------------
@@ -317,7 +255,6 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
       return [
         PopupMenuButton<String>(
           onSelected: (v) {
-            if (v == 'tts') _toggleSpeech();
             if (v == 'bookmark') _addBookmark();
             if (v == 'saved') _openSavedItems();
             if (v == 'settings') showReadingSettingsSheet(context);
@@ -327,12 +264,10 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
                 _uiVisible = true;
               });
             }
+            if (v == 'edit') widget.onEdit();
+            if (v == 'delete') widget.onDelete();
           },
           itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'tts',
-              child: Text(_isSpeaking ? tr('tts_stop') : tr('tts_start')),
-            ),
             PopupMenuItem(value: 'bookmark', child: Text(tr('bookmark_add'))),
             PopupMenuItem(
               value: 'saved',
@@ -344,18 +279,13 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
             ),
             if (widget.content.length >= _searchMinContentLength)
               PopupMenuItem(value: 'search', child: Text(tr('search'))),
+            PopupMenuItem(value: 'edit', child: Text(tr('note_edit'))),
+            PopupMenuItem(value: 'delete', child: Text(tr('delete'))),
           ],
         ),
       ];
     }
     return [
-      IconButton(
-        tooltip: _isSpeaking ? tr('tts_stop') : tr('tts_start'),
-        icon: Icon(
-          _isSpeaking ? Icons.stop_circle_outlined : Icons.volume_up_outlined,
-        ),
-        onPressed: _chunks.isEmpty ? null : _toggleSpeech,
-      ),
       IconButton(
         tooltip: tr('bookmark_add'),
         icon: const Icon(Icons.bookmark_add_outlined),
@@ -380,6 +310,20 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
             _uiVisible = true;
           }),
         ),
+      // The far-right edit menu: everything the library list's own "..."
+      // menu offers for a note, reachable without leaving the reading view.
+      PopupMenuButton<String>(
+        icon: const Icon(Icons.edit_outlined),
+        tooltip: tr('note_edit'),
+        onSelected: (v) {
+          if (v == 'edit') widget.onEdit();
+          if (v == 'delete') widget.onDelete();
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'edit', child: Text(tr('note_edit'))),
+          PopupMenuItem(value: 'delete', child: Text(tr('delete'))),
+        ],
+      ),
     ];
   }
 
@@ -463,12 +407,9 @@ class _NoteViewerScreenState extends State<NoteViewerScreen> {
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.only(bottom: 4),
-                        color: index == _speakingChunkIndex
-                            ? settings.background.textColor.withValues(
-                                alpha: 0.08,
-                              )
-                            : (_searchQuery.isNotEmpty &&
-                                  _searchMatchChunks.contains(index))
+                        color:
+                            (_searchQuery.isNotEmpty &&
+                                _searchMatchChunks.contains(index))
                             ? const Color(0x33FF9800)
                             : null,
                         child: MarkdownBody(

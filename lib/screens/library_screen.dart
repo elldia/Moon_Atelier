@@ -685,7 +685,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Future<void> _editNote(Book book) async {
+  /// Returns whether the note was actually saved (false if the user backed
+  /// out of the editor without confirming).
+  Future<bool> _editNote(Book book) async {
     final result = await Navigator.of(context).push<NoteResult>(
       MaterialPageRoute(
         builder: (_) => NoteEditorScreen(
@@ -694,7 +696,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       ),
     );
-    if (!mounted || result == null) return;
+    if (!mounted || result == null) return false;
     await _updateBook(
       book.copyWith(
         name: result.title,
@@ -702,6 +704,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         modifiedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
   Future<void> _updateBook(Book updated) async {
@@ -715,7 +718,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
-  Future<void> _deleteBook(Book book) async {
+  /// Returns whether the book was actually deleted (false if the user
+  /// cancelled the confirmation).
+  Future<bool> _deleteBook(Book book) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -733,11 +738,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) return false;
 
     await LibraryStore.delete(book.id);
-    if (!mounted) return;
+    if (!mounted) return true;
     setState(() => _books = _books.where((b) => b.id != book.id).toList());
+    return true;
   }
 
   void _toggleSelectionMode() {
@@ -921,6 +927,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
               bookId: book.id,
               title: book.name,
               content: decodeTextBytes(book.bytes),
+              onEdit: () async {
+                final saved = await _editNote(book);
+                // Pops this note's viewer back to the library list once the
+                // edit is saved; the content it was showing is now stale.
+                if (saved && mounted) Navigator.of(context).pop();
+              },
+              onDelete: () async {
+                final deleted = await _deleteBook(book);
+                if (deleted && mounted) Navigator.of(context).pop();
+              },
             ),
           ),
         );
