@@ -16,13 +16,17 @@ import '../utils/docx_text_extractor.dart';
 import '../utils/dropbox_picker.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/file_pick_watchdog.dart';
+import '../utils/ftp_client.dart';
 import '../utils/musicxml_extractor.dart';
 import '../utils/onedrive_picker.dart';
 import '../utils/rtf_text_extractor.dart';
 import '../utils/text_decoder.dart';
+import '../utils/wifi_transfer_server.dart';
 import '../utils/zip_book_extractor.dart';
 import '../widgets/coffee_dialog.dart';
 import '../widgets/file_source_dialog.dart';
+import '../widgets/ftp_browser_dialog.dart';
+import '../widgets/wifi_transfer_dialog.dart';
 import '../widgets/glass.dart';
 import '../widgets/onboarding_overlay.dart';
 import '../widgets/reading_settings_sheet.dart';
@@ -320,8 +324,70 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  /// Shared tail end of local-file, Dropbox and OneDrive picking: resolve a
-  /// format from the extension (falling back to peeking inside a .zip),
+  Future<void> _pickFromFtp() async {
+    if (!isFtpAvailable) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('ftp_not_available'))));
+      return;
+    }
+    final picked = await showFtpBrowserDialog(context);
+    if (!mounted || picked == null) return;
+    setState(() => _isPicking = true);
+    try {
+      final dotIndex = picked.name.lastIndexOf('.');
+      final extension = dotIndex < 0
+          ? null
+          : picked.name.substring(dotIndex + 1);
+      await _registerPickedBytes(
+        name: picked.name,
+        bytes: picked.bytes,
+        extension: extension,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  Future<void> _pickFromWifiTransfer() async {
+    if (!isWifiTransferAvailable) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('wifi_transfer_not_available'))),
+      );
+      return;
+    }
+    final picked = await showWifiTransferDialog(context);
+    if (!mounted || picked == null) return;
+    setState(() => _isPicking = true);
+    try {
+      final dotIndex = picked.name.lastIndexOf('.');
+      final extension = dotIndex < 0
+          ? null
+          : picked.name.substring(dotIndex + 1);
+      await _registerPickedBytes(
+        name: picked.name,
+        bytes: picked.bytes,
+        extension: extension,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('save_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
+  /// Shared tail end of local-file, Dropbox, OneDrive, FTP and Wi-Fi
+  /// transfer picking: resolve a format from the extension (falling back to
+  /// peeking inside a .zip),
   /// then save and open the book. Assumes [_isPicking] is already being
   /// managed by the caller.
   Future<void> _registerPickedBytes({
@@ -574,11 +640,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
     if (!mounted || action == null) return;
     if (action == 'file') {
-      // onPickLocal/onPickClipboard fire synchronously from inside the
-      // dialog's own onTap (see file_source_dialog.dart) rather than after
-      // this awaited Future resolves, so the file chooser stays inside the
-      // tap's transient activation on mobile browsers.
-      final source = await showFileSourceDialog(
+      // Every onPickX callback fires synchronously from inside the dialog's
+      // own onTap (see file_source_dialog.dart) rather than after this
+      // awaited Future resolves, so pickers that open a real native/browser
+      // chooser (local, Dropbox, OneDrive) stay inside the tap's transient
+      // activation on mobile browsers. showFileSourceDialog always resolves
+      // to null; the actual picking happens in these callbacks.
+      await showFileSourceDialog(
         context,
         onPickLocal: () {
           unawaited(_pickBook());
@@ -590,20 +658,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
         onPickOneDrive: () {
           unawaited(_pickFromOneDrive());
         },
+        onPickFtp: () {
+          unawaited(_pickFromFtp());
+        },
+        onPickWifiTransfer: () {
+          unawaited(_pickFromWifiTransfer());
+        },
       );
-      if (!mounted || source == null) return;
-      switch (source) {
-        case FileSource.local:
-        case FileSource.clipboard:
-        case FileSource.dropbox:
-        case FileSource.oneDrive:
-          break; // already handled synchronously via the callbacks above
-        case FileSource.wifiTransfer:
-        case FileSource.ftp:
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(tr('import_not_ready'))));
-          break;
-      }
     } else if (action == 'note') {
       await _createNote();
     } else if (action == 'folder') {

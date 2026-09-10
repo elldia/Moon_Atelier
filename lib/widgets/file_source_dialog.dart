@@ -3,40 +3,43 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import 'glass.dart';
 
-/// Where the user wants to bring a new file in from. 'local', 'clipboard',
-/// 'dropbox' and 'oneDrive' are the only sources this app can actually
-/// reach without a backend — the rest report back to the caller as chosen,
-/// which shows a "coming soon" message.
+/// Where the user wants to bring a new file in from. All of these are wired
+/// up to a real picker.
 enum FileSource { local, clipboard, dropbox, oneDrive, wifiTransfer, ftp }
 
 /// Shows the "where do you want to add a file from" picker.
 ///
-/// [onPickLocal], [onPickClipboard], [onPickDropbox] and [onPickOneDrive]
-/// are invoked synchronously from inside the tapped [ListTile]'s `onTap`,
-/// before the dialog is popped — not after awaiting this function's
-/// returned Future. That matters for all but [onPickClipboard]: each opens
-/// a native/third-party picker (a `<input type="file">.click()`, or
-/// Dropbox/OneDrive's own popup windows) that browsers only allow while
-/// still inside the same synchronous call stack as a real user gesture
-/// ("transient activation"). Desktop browsers are lenient about a short
-/// async gap, but mobile browsers (iOS Safari in particular) are not —
+/// Every onPickX callback is invoked synchronously from inside the tapped
+/// [ListTile]'s `onTap`, before the dialog is popped — not after awaiting
+/// this function's returned Future, which always resolves once the dialog
+/// closes (there's nothing left to report back). That ordering matters for
+/// all but [onPickClipboard]: each of the others opens a native/third-party
+/// picker (a `<input type="file">.click()`, Dropbox/OneDrive's own popup
+/// windows, or this app's own FTP/Wi-Fi-transfer dialog) that browsers only
+/// allow while still inside the same synchronous call stack as a real user
+/// gesture ("transient activation"). Desktop browsers are lenient about a
+/// short async gap, but mobile browsers (iOS Safari in particular) are not —
 /// going through an awaited `Navigator.pop()` + dialog-close animation
 /// first silently drops the picker, which looks like the button doing
 /// nothing / spinning forever.
-Future<FileSource?> showFileSourceDialog(
+Future<void> showFileSourceDialog(
   BuildContext context, {
   required VoidCallback onPickLocal,
   required VoidCallback onPickClipboard,
   required VoidCallback onPickDropbox,
   required VoidCallback onPickOneDrive,
+  required VoidCallback onPickFtp,
+  required VoidCallback onPickWifiTransfer,
 }) {
-  return showDialog<FileSource>(
+  return showDialog<void>(
     context: context,
     builder: (context) => _FileSourceDialog(
       onPickLocal: onPickLocal,
       onPickClipboard: onPickClipboard,
       onPickDropbox: onPickDropbox,
       onPickOneDrive: onPickOneDrive,
+      onPickFtp: onPickFtp,
+      onPickWifiTransfer: onPickWifiTransfer,
     ),
   );
 }
@@ -46,12 +49,16 @@ class _FileSourceDialog extends StatelessWidget {
   final VoidCallback onPickClipboard;
   final VoidCallback onPickDropbox;
   final VoidCallback onPickOneDrive;
+  final VoidCallback onPickFtp;
+  final VoidCallback onPickWifiTransfer;
 
   const _FileSourceDialog({
     required this.onPickLocal,
     required this.onPickClipboard,
     required this.onPickDropbox,
     required this.onPickOneDrive,
+    required this.onPickFtp,
+    required this.onPickWifiTransfer,
   });
 
   static const _options = [
@@ -64,8 +71,8 @@ class _FileSourceDialog extends StatelessWidget {
     ),
     (FileSource.dropbox, Icons.cloud_queue_outlined, 'source_dropbox', true),
     (FileSource.oneDrive, Icons.cloud_outlined, 'source_onedrive', true),
-    (FileSource.wifiTransfer, Icons.wifi_tethering, 'source_wifi', false),
-    (FileSource.ftp, Icons.dns_outlined, 'source_ftp', false),
+    (FileSource.wifiTransfer, Icons.wifi_tethering, 'source_wifi', true),
+    (FileSource.ftp, Icons.dns_outlined, 'source_ftp', true),
   ];
 
   @override
@@ -142,8 +149,17 @@ class _FileSourceDialog extends StatelessWidget {
                               onPickOneDrive();
                               Navigator.of(context).pop();
                               break;
-                            default:
-                              Navigator.of(context).pop(source);
+                            case FileSource.ftp:
+                              // No transient-activation concern (it's our
+                              // own Flutter dialog, not a browser popup),
+                              // but pop after opening it for consistency.
+                              onPickFtp();
+                              Navigator.of(context).pop();
+                              break;
+                            case FileSource.wifiTransfer:
+                              onPickWifiTransfer();
+                              Navigator.of(context).pop();
+                              break;
                           }
                         },
                       ),
