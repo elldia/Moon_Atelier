@@ -266,10 +266,10 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     final delta = event.scrollDelta.dy.abs() >= event.scrollDelta.dx.abs()
         ? event.scrollDelta.dy
         : event.scrollDelta.dx;
-    if (delta.abs() < 4) return;
+    if (delta.abs() < 1) return;
     final now = DateTime.now();
     if (_lastWheelPageTurn != null &&
-        now.difference(_lastWheelPageTurn!) < const Duration(milliseconds: 300)) {
+        now.difference(_lastWheelPageTurn!) < const Duration(milliseconds: 180)) {
       return;
     }
     _lastWheelPageTurn = now;
