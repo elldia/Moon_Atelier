@@ -1,6 +1,16 @@
 import 'dart:typed_data';
 
-enum BookFormat { epub, pdf, txt, docx, rtf, musicXml, note }
+enum BookFormat { epub, pdf, txt, docx, rtf, musicXml, note, comic }
+
+/// Which top-level library a [BookFormat] belongs to — the e-book reader or
+/// the comic viewer. Drives which entry screen a book shows up under and
+/// which extensions/pickers apply.
+enum BookKind { ebook, comic }
+
+extension BookFormatKind on BookFormat {
+  BookKind get kind =>
+      this == BookFormat.comic ? BookKind.comic : BookKind.ebook;
+}
 
 class Book {
   final String id;
@@ -81,6 +91,8 @@ class Book {
       case 'musicxml':
       case 'mxl':
         return BookFormat.musicXml;
+      case 'cbz':
+        return BookFormat.comic;
       default:
         return null;
     }

@@ -30,6 +30,8 @@ import '../widgets/wifi_transfer_dialog.dart';
 import '../widgets/glass.dart';
 import '../widgets/onboarding_overlay.dart';
 import '../widgets/reading_settings_sheet.dart';
+import '../utils/comic_archive.dart';
+import 'comic_viewer_screen.dart';
 import 'epub_viewer_screen.dart';
 import 'music_score_viewer_screen.dart';
 import 'note_editor_screen.dart';
@@ -51,7 +53,9 @@ enum BookSort {
 String _sortLabel(BookSort s) => tr('sort_${s.name}');
 
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+  final BookKind kind;
+
+  const LibraryScreen({super.key, required this.kind});
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -80,11 +84,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final _trashKey = GlobalKey();
   final _settingsKey = GlobalKey();
 
+  bool get _isComic => widget.kind == BookKind.comic;
+
   @override
   void initState() {
     super.initState();
-    _books = LibraryStore.loadAll();
+    _books = LibraryStore.loadAll()
+        .where((b) => b.format.kind == widget.kind)
+        .toList();
     _folders = FolderStore.loadAll();
+    if (_isComic) return;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => maybeShowOnboardingOverlay(context, [
         OnboardingStep(
@@ -165,16 +174,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
       // nothing to fall back on short of this function's own 90s timeout.
       final file =
           await pickFileWithWatchdog(
-            allowedExtensions: [
-              'epub',
-              'pdf',
-              'txt',
-              'docx',
-              'rtf',
-              'musicxml',
-              'mxl',
-              'zip',
-            ],
+            allowedExtensions: _isComic
+                ? ['cbz', 'zip']
+                : [
+                    'epub',
+                    'pdf',
+                    'txt',
+                    'docx',
+                    'rtf',
+                    'musicxml',
+                    'mxl',
+                    'zip',
+                  ],
           ).timeout(
             const Duration(seconds: 90),
             onTimeout: () => throw TimeoutException('file picker'),
@@ -218,16 +229,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
     try {
       final picked =
           await chooseDropboxFile(
-            extensions: [
-              '.epub',
-              '.pdf',
-              '.txt',
-              '.docx',
-              '.rtf',
-              '.musicxml',
-              '.mxl',
-              '.zip',
-            ],
+            extensions: _isComic
+                ? ['.cbz', '.zip']
+                : [
+                    '.epub',
+                    '.pdf',
+                    '.txt',
+                    '.docx',
+                    '.rtf',
+                    '.musicxml',
+                    '.mxl',
+                    '.zip',
+                  ],
           ).timeout(
             const Duration(seconds: 90),
             onTimeout: () => throw TimeoutException('Dropbox chooser'),
@@ -280,7 +293,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     try {
       final picked =
           await chooseOneDriveFile(
-            filter: '.epub,.pdf,.txt,.docx,.rtf,.musicxml,.mxl,.zip',
+            filter: _isComic
+                ? '.cbz,.zip'
+                : '.epub,.pdf,.txt,.docx,.rtf,.musicxml,.mxl,.zip',
             redirectUri: Uri.base.toString(),
           ).timeout(
             const Duration(seconds: 90),
@@ -398,7 +413,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     var resolvedName = name;
     var format = Book.formatFromExtension(extension);
     var resolvedBytes = bytes;
-    if (format == null && extension?.toLowerCase() == 'zip') {
+    if (_isComic) {
+      // The comic library only ever deals in page-image archives: a plain
+      // .zip is just as valid as a .cbz, so long as it actually contains
+      // images (checked directly, unlike the ebook side's zip peek below).
+      if (extension?.toLowerCase() == 'zip') {
+        format = looksLikeComicArchive(bytes) ? BookFormat.comic : null;
+      }
+    } else if (format == null && extension?.toLowerCase() == 'zip') {
       final found = findSupportedFileInZip(bytes);
       if (found != null) {
         resolvedName = found.name;
@@ -407,7 +429,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       }
     }
 
-    if (format == null) {
+    if (format == null || format.kind != widget.kind) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
@@ -617,11 +639,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.edit_note),
-                  title: Text(tr('note_create')),
-                  onTap: () => Navigator.of(context).pop('note'),
-                ),
+                if (!_isComic)
+                  ListTile(
+                    leading: const Icon(Icons.edit_note),
+                    title: Text(tr('note_create')),
+                    onTap: () => Navigator.of(context).pop('note'),
+                  ),
                 ListTile(
                   leading: const Icon(Icons.upload_file_outlined),
                   title: Text(tr('file_register')),
@@ -664,6 +687,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         onPickWifiTransfer: () {
           unawaited(_pickFromWifiTransfer());
         },
+        showClipboard: !_isComic,
       );
     } else if (action == 'note') {
       await _createNote();
@@ -920,6 +944,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
           );
         }
         break;
+      case BookFormat.comic:
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ComicViewerScreen(
+              bookId: book.id,
+              title: book.name,
+              bytes: book.bytes,
+              initialPage: book.position as int?,
+              onPositionChanged: (page) {
+                current = current.copyWith(position: page);
+                _updateBook(current);
+              },
+              onProgressChanged: (p) {
+                current = current.copyWith(progress: p);
+                _updateBook(current);
+              },
+            ),
+          ),
+        );
+        break;
       case BookFormat.note:
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -998,6 +1042,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return Icons.music_note;
       case BookFormat.note:
         return Icons.edit_note;
+      case BookFormat.comic:
+        return Icons.auto_stories;
     }
   }
 
@@ -1270,7 +1316,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     onChanged: (v) => setState(() => _query = v),
                   )
                 : Text(
-                    folder?.name ?? appName.label,
+                    folder?.name ??
+                        (_isComic
+                            ? tr('comic_library_title')
+                            : appName.label),
                     overflow: TextOverflow.ellipsis,
                   ),
             actions: _buildActions(
@@ -1299,7 +1348,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        tr('supported_formats_hint'),
+                        _isComic
+                            ? tr('supported_formats_hint_comic')
+                            : tr('supported_formats_hint'),
                         textAlign: TextAlign.center,
                       ),
                     ],

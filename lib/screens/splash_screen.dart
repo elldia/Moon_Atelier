@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/glass.dart';
-import 'library_screen.dart';
+import 'home_screen.dart';
 
 /// Shown for ~0.8s on every fresh launch/refresh before handing off to
-/// [LibraryScreen] — just the app icon over the app's gradient background,
+/// [HomeScreen] — just the app icon over the app's gradient background,
 /// so the transition into the real UI feels intentional rather than a
 /// blank flash.
 class SplashScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LibraryScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     });
   }

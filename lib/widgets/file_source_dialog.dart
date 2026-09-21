@@ -30,6 +30,7 @@ Future<void> showFileSourceDialog(
   required VoidCallback onPickOneDrive,
   required VoidCallback onPickFtp,
   required VoidCallback onPickWifiTransfer,
+  bool showClipboard = true,
 }) {
   return showDialog<void>(
     context: context,
@@ -40,6 +41,7 @@ Future<void> showFileSourceDialog(
       onPickOneDrive: onPickOneDrive,
       onPickFtp: onPickFtp,
       onPickWifiTransfer: onPickWifiTransfer,
+      showClipboard: showClipboard,
     ),
   );
 }
@@ -51,6 +53,7 @@ class _FileSourceDialog extends StatelessWidget {
   final VoidCallback onPickOneDrive;
   final VoidCallback onPickFtp;
   final VoidCallback onPickWifiTransfer;
+  final bool showClipboard;
 
   const _FileSourceDialog({
     required this.onPickLocal,
@@ -59,6 +62,7 @@ class _FileSourceDialog extends StatelessWidget {
     required this.onPickOneDrive,
     required this.onPickFtp,
     required this.onPickWifiTransfer,
+    this.showClipboard = true,
   });
 
   static const _options = [
@@ -113,6 +117,7 @@ class _FileSourceDialog extends StatelessWidget {
                   ),
                   children: [
                     for (final (source, icon, labelKey, ready) in _options)
+                      if (showClipboard || source != FileSource.clipboard)
                       ListTile(
                         leading: Icon(icon),
                         title: Text(tr(labelKey)),

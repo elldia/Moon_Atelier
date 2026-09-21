@@ -30,6 +30,35 @@ const _dict = <String, List<String>>{
   'search': ['검색', 'Search', '検索', '搜索'],
   'sort': ['정렬', 'Sort', '並び替え', '排序'],
 
+  // Home / start screen
+  'home_ebook_title': ['이북 리더', 'E-book Reader', '電子書籍リーダー', '电子书阅读器'],
+  'home_ebook_desc': [
+    'EPUB, PDF, TXT 등 전자책과 글을 읽어요',
+    'Read your e-books and notes',
+    '電子書籍やメモを読みます',
+    '阅读电子书和笔记',
+  ],
+  'home_comic_title': ['만화 뷰어', 'Comic Viewer', 'コミックビューア', '漫画阅读器'],
+  'home_comic_desc': [
+    'CBZ, ZIP 만화책을 페이지 단위로 봐요',
+    'Read comic archives page by page',
+    'CBZ・ZIP形式のコミックをページ単位で読みます',
+    '按页浏览CBZ、ZIP格式的漫画',
+  ],
+  'comic_library_title': ['만화 서재', 'Comic Library', 'コミック書斎', '漫画书房'],
+  'supported_formats_hint_comic': [
+    'CBZ, ZIP(이미지) 만화 파일을 열 수 있어요.',
+    'You can open CBZ and image-only ZIP comic files.',
+    'CBZ、画像のみのZIP形式の漫画ファイルを開けます。',
+    '可以打开CBZ及仅含图片的ZIP漫画文件。',
+  ],
+  'comic_open_error': [
+    '만화 파일을 여는 중 오류가 발생했습니다: {error}\n이미지가 들어있는 CBZ/ZIP 파일인지 확인해 주세요.',
+    'An error occurred opening the comic: {error}\nPlease check that this is a CBZ/ZIP file containing images.',
+    '漫画ファイルを開く際にエラーが発生しました: {error}\n画像が含まれるCBZ/ZIPファイルか確認してください。',
+    '打开漫画文件时发生错误: {error}\n请确认这是包含图片的CBZ/ZIP文件。',
+  ],
+
   // Library screen
   'library_title': ['내 서재', 'My Library', 'マイライブラリ', '我的书房'],
   'add': ['추가', 'Add', '追加', '添加'],
