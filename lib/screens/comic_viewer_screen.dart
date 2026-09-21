@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -58,6 +59,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   int _page = 1; // 1-based; the current page (or topmost visible one)
   Timer? _saveDebounce;
   bool _uiVisible = true;
+  DateTime? _lastWheelPageTurn;
 
   int get _spreadCount => (_archive!.pageCount / 2).ceil();
 
@@ -80,6 +82,26 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     _direction = settings.direction;
     _initControllers();
     ComicSettingsController.instance.addListener(_onSettingsChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
+  }
+
+  /// Warms Flutter's image cache for the pages just around the current one,
+  /// so flipping forward/back usually hits an already-decoded image instead
+  /// of decoding synchronously on the frame the new page appears — that
+  /// synchronous decode (plus, the first time a given page is visited, the
+  /// zip inflate behind [ComicArchive.pageBytes]) is what shows up as a
+  /// brief hitch right as a page turn lands.
+  void _precacheNeighbors() {
+    final archive = _archive;
+    if (archive == null || !mounted || _mode == ComicViewMode.continuousScroll) {
+      return;
+    }
+    final count = archive.pageCount;
+    final current = _page - 1;
+    for (final idx in [current - 2, current - 1, current + 1, current + 2]) {
+      if (idx < 0 || idx >= count) continue;
+      precacheImage(MemoryImage(archive.pageBytes(idx)), context);
+    }
   }
 
   void _initControllers() {
@@ -123,6 +145,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
       _direction = settings.direction;
       _initControllers();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
   }
 
   /// Scrolls to the position [page] would occupy if every page shared an
@@ -171,6 +194,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   void _onPageViewChanged(int index) {
     final newPage = _mode == ComicViewMode.twoPage ? index * 2 + 1 : index + 1;
     setState(() => _page = newPage);
+    _precacheNeighbors();
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 500), _persistPosition);
   }
@@ -201,9 +225,10 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     final count = _archive?.pageCount ?? 0;
     if (count == 0) return;
     final clamped = target.clamp(1, count);
+    final animate = ComicSettingsController.instance.value.animatePageTurns;
 
     if (_mode == ComicViewMode.continuousScroll) {
-      _scrollToPageRatio(clamped, animate: true);
+      _scrollToPageRatio(clamped, animate: animate);
       setState(() => _page = clamped);
       _saveDebounce?.cancel();
       _saveDebounce = Timer(
@@ -214,14 +239,41 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     }
 
     final itemCount = _mode == ComicViewMode.twoPage ? _spreadCount : count;
-    final targetIndex = _mode == ComicViewMode.twoPage
-        ? (clamped - 1) ~/ 2
-        : clamped - 1;
-    _pageController?.animateToPage(
-      targetIndex.clamp(0, itemCount - 1),
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.ease,
-    );
+    final targetIndex = (_mode == ComicViewMode.twoPage
+            ? (clamped - 1) ~/ 2
+            : clamped - 1)
+        .clamp(0, itemCount - 1);
+    if (animate) {
+      _pageController?.animateToPage(
+        targetIndex,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.ease,
+      );
+    } else {
+      _pageController?.jumpToPage(targetIndex);
+    }
+    _precacheNeighbors();
+  }
+
+  /// Mouse-wheel/trackpad equivalent of the arrow-key page turn (single and
+  /// two-page mode only — continuous scroll already scrolls natively from
+  /// wheel input via its own [SingleChildScrollView]). Debounced so one
+  /// physical wheel "notch" — which can fire several scroll events in a
+  /// browser — turns exactly one page instead of several.
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    if (_mode == ComicViewMode.continuousScroll) return;
+    final delta = event.scrollDelta.dy.abs() >= event.scrollDelta.dx.abs()
+        ? event.scrollDelta.dy
+        : event.scrollDelta.dx;
+    if (delta.abs() < 4) return;
+    final now = DateTime.now();
+    if (_lastWheelPageTurn != null &&
+        now.difference(_lastWheelPageTurn!) < const Duration(milliseconds: 300)) {
+      return;
+    }
+    _lastWheelPageTurn = now;
+    _jumpToPage(_page + (delta > 0 ? 1 : -1));
   }
 
   void _handleArrowKey(LogicalKeyboardKey key) {
@@ -304,31 +356,24 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     );
   }
 
+  // Continuous scroll is always a vertical (webtoon-style) strip, regardless
+  // of the direction setting — that setting only applies to page-turning in
+  // single/two-page mode. Scrolling sideways through a strip of full-height
+  // pages isn't how anyone actually reads a continuous comic.
   Widget _buildContinuousScroll(ComicImageQuality quality, BuildContext context) {
-    final isVertical = _direction == ComicDirection.vertical;
     final size = MediaQuery.sizeOf(context);
     final images = [
       for (var index = 0; index < _archive!.pageCount; index++)
-        isVertical
-            ? Image.memory(
-                _archive!.pageBytes(index),
-                width: size.width,
-                fit: BoxFit.fitWidth,
-                filterQuality: quality.filterQuality,
-              )
-            : Image.memory(
-                _archive!.pageBytes(index),
-                height: size.height,
-                fit: BoxFit.fitHeight,
-                filterQuality: quality.filterQuality,
-              ),
+        Image.memory(
+          _archive!.pageBytes(index),
+          width: size.width,
+          fit: BoxFit.fitWidth,
+          filterQuality: quality.filterQuality,
+        ),
     ];
     return SingleChildScrollView(
       controller: _scrollController,
-      scrollDirection: isVertical ? Axis.vertical : Axis.horizontal,
-      child: isVertical
-          ? Column(mainAxisSize: MainAxisSize.min, children: images)
-          : Row(mainAxisSize: MainAxisSize.min, children: images),
+      child: Column(mainAxisSize: MainAxisSize.min, children: images),
     );
   }
 
@@ -455,11 +500,14 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
               _handleArrowKey(event.logicalKey);
               return KeyEventResult.handled;
             },
-            child: GestureDetector(
-              onTap: () => setState(() => _uiVisible = !_uiVisible),
-              child: comicSettings.viewMode == ComicViewMode.continuousScroll
-                  ? _buildContinuousScroll(comicSettings.quality, context)
-                  : _buildPagedView(comicSettings.quality),
+            child: Listener(
+              onPointerSignal: _handlePointerSignal,
+              child: GestureDetector(
+                onTap: () => setState(() => _uiVisible = !_uiVisible),
+                child: comicSettings.viewMode == ComicViewMode.continuousScroll
+                    ? _buildContinuousScroll(comicSettings.quality, context)
+                    : _buildPagedView(comicSettings.quality),
+              ),
             ),
           ),
           floatingActionButton: !_uiVisible

@@ -65,6 +65,19 @@ const _dict = <String, List<String>>{
   'comic_quality_sharp': ['선명하게', 'Sharp', 'シャープ', '锐利'],
   'comic_quality_medium': ['평균', 'Medium', '標準', '中等'],
   'comic_quality_smooth': ['부드럽게', 'Smooth', 'なめらか', '柔和'],
+  'comic_animate_section': ['페이지 전환 효과', 'Page Turn Animation', 'ページ切り替え効果', '翻页动画'],
+  'comic_animate_title': [
+    '넘길 때 애니메이션',
+    'Animate page turns',
+    'ページめくりアニメーション',
+    '翻页动画效果',
+  ],
+  'comic_animate_desc': [
+    '끄면 페이지가 즉시 전환돼요',
+    'Turn off for instant page changes',
+    'オフにするとページが即座に切り替わります',
+    '关闭后翻页会立即切换',
+  ],
   'comic_open_error': [
     '만화 파일을 여는 중 오류가 발생했습니다: {error}\n이미지가 들어있는 CBZ/ZIP 파일인지 확인해 주세요.',
     'An error occurred opening the comic: {error}\nPlease check that this is a CBZ/ZIP file containing images.',

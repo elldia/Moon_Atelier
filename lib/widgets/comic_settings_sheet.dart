@@ -38,7 +38,7 @@ class _ComicSettingsSheet extends StatelessWidget {
             builder: (context, _) {
               final settings = ComicSettingsController.instance.value;
               return Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,21 +62,26 @@ class _ComicSettingsSheet extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _SectionLabel(tr('comic_direction_section')),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final dir in ComicDirection.values)
-                          ChoiceChip(
-                            label: Text(tr('comic_dir_${dir.name}')),
-                            selected: settings.direction == dir,
-                            onSelected: (_) =>
-                                _set((s) => s.copyWith(direction: dir)),
-                          ),
-                      ],
-                    ),
+                    // Continuous scroll is always vertical (see
+                    // ComicViewerScreen._buildContinuousScroll), so this
+                    // choice only means anything for single/two-page mode.
+                    if (settings.viewMode != ComicViewMode.continuousScroll) ...[
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('comic_direction_section')),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final dir in ComicDirection.values)
+                            ChoiceChip(
+                              label: Text(tr('comic_dir_${dir.name}')),
+                              selected: settings.direction == dir,
+                              onSelected: (_) =>
+                                  _set((s) => s.copyWith(direction: dir)),
+                            ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     _SectionLabel(tr('comic_quality_section')),
                     Wrap(
@@ -91,6 +96,16 @@ class _ComicSettingsSheet extends StatelessWidget {
                                 _set((s) => s.copyWith(quality: q)),
                           ),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionLabel(tr('comic_animate_section')),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(tr('comic_animate_title')),
+                      subtitle: Text(tr('comic_animate_desc')),
+                      value: settings.animatePageTurns,
+                      onChanged: (v) =>
+                          _set((s) => s.copyWith(animatePageTurns: v)),
                     ),
                   ],
                 ),

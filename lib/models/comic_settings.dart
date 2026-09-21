@@ -29,28 +29,33 @@ class ComicSettings {
   final ComicViewMode viewMode;
   final ComicDirection direction;
   final ComicImageQuality quality;
+  final bool animatePageTurns;
 
   const ComicSettings({
     required this.viewMode,
     required this.direction,
     required this.quality,
+    required this.animatePageTurns,
   });
 
   static const defaults = ComicSettings(
     viewMode: ComicViewMode.single,
     direction: ComicDirection.horizontal,
     quality: ComicImageQuality.medium,
+    animatePageTurns: true,
   );
 
   ComicSettings copyWith({
     ComicViewMode? viewMode,
     ComicDirection? direction,
     ComicImageQuality? quality,
+    bool? animatePageTurns,
   }) {
     return ComicSettings(
       viewMode: viewMode ?? this.viewMode,
       direction: direction ?? this.direction,
       quality: quality ?? this.quality,
+      animatePageTurns: animatePageTurns ?? this.animatePageTurns,
     );
   }
 
@@ -58,6 +63,7 @@ class ComicSettings {
     'viewMode': viewMode.name,
     'direction': direction.name,
     'quality': quality.name,
+    'animatePageTurns': animatePageTurns,
   };
 
   factory ComicSettings.fromMap(Map raw) => ComicSettings(
@@ -73,5 +79,6 @@ class ComicSettings {
       (v) => v.name == raw['quality'],
       orElse: () => ComicImageQuality.medium,
     ),
+    animatePageTurns: raw['animatePageTurns'] as bool? ?? true,
   );
 }
