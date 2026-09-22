@@ -4,7 +4,7 @@
          lib/screens/music_score_viewer_screen_io.dart). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="ebk"
+        android:label="Moon Atelier"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
