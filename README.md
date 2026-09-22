@@ -45,10 +45,10 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 
 ### 만화 뷰어
 - CBZ, ZIP 만화책을 페이지 단위로 감상(전자책과는 별도의 만화 서재)
-- 보기 방식: 한 장씩 / 두 장씩(스프레드) — 두 장씩 볼 때는 실제 책처럼 넘기는 방향이 항상 가로로 고정되고, 두 페이지가 가운데(책등)에서 맞닿도록 정렬됨
-- 한 장씩 볼 때는 넘기는 방향(가로/세로)을 선택 가능
+- 보기 방식: 한 장씩 / 두 장씩(스프레드) — 페이지는 항상 가로로 넘어가며, 두 장씩 볼 때는 두 페이지가 가운데(책등)에서 맞닿도록 정렬됨
+- 읽기 방향을 좌→우(서양 만화) / 우→좌(망가)로 선택 가능 — 두 장씩 볼 때는 스프레드 안 페이지 순서도 그에 맞게 바뀜
 - 화면 가장자리를 탭하면 이전/다음 페이지로 넘어가고 가운데를 탭하면 화면 UI가 보이거나 숨겨짐 — 탭 영역의 방향과 크기(화면의 25~50%)를 설정에서 조절 가능(길게 누르면 항상 UI 전환)
-- 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능
+- 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능(핀치/휠 확대축소는 탭 넘기기와 겹치지 않도록 지원하지 않음)
 - 이미지 화질(선명하게/평균/부드럽게) 선택 및 페이지 전환 애니메이션 켜기/끄기
 - 원본 이미지가 화면 해상도보다 훨씬 큰 대용량 만화책도, 보이는 화질은 유지하면서 기기 해상도에 맞춰 자동으로 디코딩 크기를 줄여 더 빠르게 넘어감
 - 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시
@@ -98,12 +98,12 @@ A glassmorphism-styled web ebook reader built with Flutter.
 
 ### Comic Viewer
 - Read CBZ/ZIP comic archives page by page, in its own library separate from the e-book reader
-- View modes: single page or two-page spread — spreads always turn horizontally like a real book, with the two pages center-aligned so they meet at the spine
-- Single-page mode also lets you pick the page-turn direction (horizontal/vertical)
+- View modes: single page or two-page spread — pages always turn horizontally, and spreads have the two pages center-aligned so they meet at the spine like a real book
+- Pick a reading direction, left-to-right (Western comics) or right-to-left (manga) — spreads reorder their pages to match
 - Tap an edge of the screen to turn to the previous/next page, or the middle to show/hide the UI — both the tap zones' direction and size (25-50% of the screen) are configurable from Settings (long-press always toggles the UI as a fallback)
-- Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns
+- Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns (no pinch/wheel zoom, so it never fights with edge-tap page turning)
 - Choice of image quality (sharp/medium/smooth) and a toggle for the page-turn animation
-- Large comics whose source images are much bigger than the screen decode faster automatically — pages are downscaled to match the device's resolution (with headroom for zoom) while keeping the visible quality the same
+- Large comics whose source images are much bigger than the screen decode faster automatically — pages are downscaled to match the device's resolution while keeping the visible quality the same
 - Add bookmarks and jump back to them from a list, plus a progress indicator (page/total, %) up top
 - Choose from 5 background presets (white/sepia/gray/dark/black, black by default), independent of the e-book reader's background
 - The settings dialog also lets you change the interface language (한국어/English/日本語/中文) and display mode (system/light/dark) — these are shared with the e-book reader's settings

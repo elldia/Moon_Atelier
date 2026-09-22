@@ -7,12 +7,12 @@ import '../models/comic_settings.dart';
 import '../models/reading_settings.dart';
 import 'glass.dart';
 
-/// Opens the comic-viewer preferences dialog (view mode, page-turn
-/// direction, image quality, plus the app-wide language/display-mode and
-/// the comic viewer's own background color), centered over the viewer at
-/// 80% of the screen's width/height. Unlike the e-book reading-settings
-/// dialog, changes apply immediately — there's no draft/cancel step —
-/// since every effect here is safe to preview live behind it.
+/// Opens the comic-viewer preferences dialog (view mode, reading direction,
+/// image quality, plus the app-wide language/display-mode and the comic
+/// viewer's own background color), centered over the viewer at 80% of the
+/// screen's width/height. Unlike the e-book reading-settings dialog,
+/// changes apply immediately — there's no draft/cancel step — since every
+/// effect here is safe to preview live behind it.
 Future<void> showComicSettingsSheet(BuildContext context) {
   return showDialog<void>(
     context: context,
@@ -123,38 +123,27 @@ class _ComicSettingsSheet extends StatelessWidget {
                             ChoiceChip(
                               label: Text(tr('comic_view_${mode.name}')),
                               selected: settings.viewMode == mode,
+                              onSelected: (_) =>
+                                  _set((s) => s.copyWith(viewMode: mode)),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('comic_reading_direction_section')),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final dir in ComicReadingDirection.values)
+                            ChoiceChip(
+                              label: Text(tr('comic_reading_dir_${dir.name}')),
+                              selected: settings.readingDirection == dir,
                               onSelected: (_) => _set(
-                                (s) => s.copyWith(
-                                  viewMode: mode,
-                                  // Two-page spreads always turn
-                                  // horizontally, like a real book.
-                                  direction: mode == ComicViewMode.twoPage
-                                      ? ComicDirection.horizontal
-                                      : s.direction,
-                                ),
+                                (s) => s.copyWith(readingDirection: dir),
                               ),
                             ),
                         ],
                       ),
-                      // Two-page spreads force horizontal (see above), so
-                      // this choice only means anything in single-page mode.
-                      if (settings.viewMode == ComicViewMode.single) ...[
-                        const SizedBox(height: 16),
-                        _SectionLabel(tr('comic_direction_section')),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final dir in ComicDirection.values)
-                              ChoiceChip(
-                                label: Text(tr('comic_dir_${dir.name}')),
-                                selected: settings.direction == dir,
-                                onSelected: (_) =>
-                                    _set((s) => s.copyWith(direction: dir)),
-                              ),
-                          ],
-                        ),
-                      ],
                       const SizedBox(height: 16),
                       _SectionLabel(tr('comic_quality_section')),
                       Wrap(

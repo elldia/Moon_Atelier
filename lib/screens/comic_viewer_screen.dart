@@ -18,11 +18,11 @@ import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
 
-/// A comic archive viewer supporting two view modes: single page (either
-/// page-turn direction) and two-page spread (always horizontal, pages
-/// meeting center-aligned like a real book) — mirroring [PdfViewerScreen]'s
-/// bookmarks/progress UX, plus arrow-key navigation and a
-/// sharp/medium/smooth image-quality choice.
+/// A comic archive viewer supporting two view modes — single page and
+/// two-page spread (pages meeting center-aligned like a real book) — each
+/// readable left-to-right or right-to-left — mirroring [PdfViewerScreen]'s
+/// bookmarks/progress UX, plus arrow-key navigation and a sharp/medium/
+/// smooth image-quality choice.
 class ComicViewerScreen extends StatefulWidget {
   final String bookId;
   final String title;
@@ -52,7 +52,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   PageController? _pageController;
 
   ComicViewMode _mode = ComicViewMode.single;
-  ComicDirection _direction = ComicDirection.horizontal;
+  ComicReadingDirection _readingDirection = ComicReadingDirection.ltr;
 
   int _page = 1; // 1-based; the current page (or topmost visible one)
   Timer? _saveDebounce;
@@ -60,15 +60,6 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   DateTime? _lastWheelPageTurn;
 
   int get _spreadCount => (_archive!.pageCount / 2).ceil();
-
-  /// Two-page spreads always turn horizontally, like a real book, no matter
-  /// what the direction setting says — that setting only means anything for
-  /// single-page mode (see comic_settings_sheet.dart, which hides the
-  /// direction picker for two-page spreads for the same reason).
-  ComicDirection _effectiveDirection(ComicSettings settings) =>
-      settings.viewMode == ComicViewMode.twoPage
-      ? ComicDirection.horizontal
-      : settings.direction;
 
   @override
   void initState() {
@@ -86,7 +77,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     }
     final settings = ComicSettingsController.instance.value;
     _mode = settings.viewMode;
-    _direction = _effectiveDirection(settings);
+    _readingDirection = settings.readingDirection;
     _initControllers();
     ComicSettingsController.instance.addListener(_onSettingsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
@@ -133,14 +124,14 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
 
   void _onSettingsChanged() {
     final settings = ComicSettingsController.instance.value;
-    final effectiveDirection = _effectiveDirection(settings);
-    if (settings.viewMode == _mode && effectiveDirection == _direction) {
+    if (settings.viewMode == _mode &&
+        settings.readingDirection == _readingDirection) {
       setState(() {}); // quality-only change: just repaint with new filter
       return;
     }
     setState(() {
       _mode = settings.viewMode;
-      _direction = effectiveDirection;
+      _readingDirection = settings.readingDirection;
       _initControllers();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
@@ -280,75 +271,76 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     ComicImageQuality quality, {
     Alignment alignment = Alignment.center,
   }) {
-    return InteractiveViewer(
-      maxScale: 4,
-      child: Align(
-        alignment: alignment,
-        child: Image.memory(
-          _archive!.pageBytes(index),
-          fit: BoxFit.contain,
-          filterQuality: quality.filterQuality,
-          cacheWidth: _decodeCacheWidth(),
-        ),
+    return Align(
+      alignment: alignment,
+      child: Image.memory(
+        _archive!.pageBytes(index),
+        fit: BoxFit.contain,
+        filterQuality: quality.filterQuality,
+        cacheWidth: _decodeCacheWidth(),
       ),
     );
   }
 
   /// Caps how large Flutter decodes each page image to, based on the
-  /// device's own resolution — scanned comic pages routinely run
-  /// 2-4x a phone's screen width, and decoding one at full native size only
-  /// to immediately downscale it for display wastes decode time and memory
-  /// that shows up as slower page turns on big files. The 1.5x headroom
-  /// keeps some detail in reserve for [InteractiveViewer]'s pinch-zoom
-  /// without decoding at the source's full (often much larger) resolution.
-  /// Only the width is capped — height is left to scale to match so
-  /// [BoxFit.contain]'s aspect ratio isn't distorted — and Flutter's
-  /// decoder never upscales past a source image's native resolution, so
-  /// this is a no-op for pages already smaller than the screen.
+  /// device's own resolution — scanned comic pages routinely run 2-4x a
+  /// phone's screen width, and decoding one at full native size only to
+  /// immediately downscale it for display wastes decode time and memory
+  /// that shows up as slower page turns on big files. Only the width is
+  /// capped — height is left to scale to match so [BoxFit.contain]'s aspect
+  /// ratio isn't distorted — and Flutter's decoder never upscales past a
+  /// source image's native resolution, so this is a no-op for pages
+  /// already smaller than the screen.
   int? _decodeCacheWidth() {
     final mq = MediaQuery.maybeOf(context);
     if (mq == null) return null;
     final halves = _mode == ComicViewMode.twoPage ? 2 : 1;
-    final target = (mq.size.width / halves * mq.devicePixelRatio * 1.5).round();
+    final target = (mq.size.width / halves * mq.devicePixelRatio).round();
     return target > 0 ? target : null;
   }
 
   Widget _buildPagedView(ComicImageQuality quality) {
     final count = _archive!.pageCount;
     final isTwoPage = _mode == ComicViewMode.twoPage;
+    final isRtl = _readingDirection == ComicReadingDirection.rtl;
     return PageView.builder(
-      key: ValueKey('${_mode.name}-${_direction.name}'),
+      key: ValueKey('${_mode.name}-${_readingDirection.name}'),
       controller: _pageController,
-      scrollDirection: _direction.axis,
+      reverse: isRtl,
       itemCount: isTwoPage ? _spreadCount : count,
       onPageChanged: _onPageViewChanged,
       itemBuilder: (context, index) {
         if (!isTwoPage) return _pageImage(index, quality);
         final firstIdx = index * 2;
         final secondIdx = firstIdx + 1;
-        // Two-page spreads always turn horizontally (see
-        // _effectiveDirection) and align each page toward the spine in the
-        // middle — like a real book, rather than each half independently
-        // centering its own page, which can leave a gap in the middle when
-        // the two pages aren't the same width.
-        return Row(
-          children: [
-            Expanded(
-              child: _pageImage(
-                firstIdx,
-                quality,
-                alignment: Alignment.centerRight,
-              ),
-            ),
-            Expanded(
-              child: secondIdx < count
+        final hasSecond = secondIdx < count;
+        // Two-page spreads always turn horizontally and align each page
+        // toward the spine in the middle — like a real book, rather than
+        // each half independently centering its own page, which can leave
+        // a gap when the two pages aren't the same width. In RTL (manga)
+        // spreads, the earlier page sits on the right instead of the left.
+        final leftPage = isRtl
+            ? (hasSecond
+                  ? _pageImage(
+                      secondIdx,
+                      quality,
+                      alignment: Alignment.centerRight,
+                    )
+                  : const SizedBox.shrink())
+            : _pageImage(firstIdx, quality, alignment: Alignment.centerRight);
+        final rightPage = isRtl
+            ? _pageImage(firstIdx, quality, alignment: Alignment.centerLeft)
+            : (hasSecond
                   ? _pageImage(
                       secondIdx,
                       quality,
                       alignment: Alignment.centerLeft,
                     )
-                  : const SizedBox.shrink(),
-            ),
+                  : const SizedBox.shrink());
+        return Row(
+          children: [
+            Expanded(child: leftPage),
+            Expanded(child: rightPage),
           ],
         );
       },

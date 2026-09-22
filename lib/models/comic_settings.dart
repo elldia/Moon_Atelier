@@ -5,8 +5,17 @@ import 'reading_settings.dart' show ReadingBackground;
 /// How many pages are shown at once in the comic viewer.
 enum ComicViewMode { single, twoPage }
 
-/// Which axis pages turn/scroll along.
+/// Which edges of the screen a tap zone sits on: horizontal taps the
+/// left/right edges, vertical taps the top/bottom edges.
 enum ComicDirection { horizontal, vertical }
+
+/// Which way pages turn and, in two-page spreads, which side of the spread
+/// each page sits on — matches how the book itself is meant to be read:
+/// left-to-right (Western comics) or right-to-left (manga). Page-turning
+/// is always horizontal now (see the removed continuous-scroll mode and
+/// [ComicViewMode.twoPage]'s forced-horizontal spreads); this only decides
+/// which way is "forward".
+enum ComicReadingDirection { ltr, rtl }
 
 /// How page images are filtered when Flutter scales them to fit the
 /// screen — a tradeoff between crisp pixels and smoothed edges.
@@ -20,23 +29,17 @@ extension ComicImageQualityFilter on ComicImageQuality {
   };
 }
 
-extension ComicDirectionAxis on ComicDirection {
-  Axis get axis =>
-      this == ComicDirection.horizontal ? Axis.horizontal : Axis.vertical;
-}
-
 /// User-adjustable comic-viewer preferences, shared by every comic the user
 /// opens (mirrors how [ReadingSettings] is shared by every e-book).
 class ComicSettings {
   final ComicViewMode viewMode;
-  final ComicDirection direction;
+  final ComicReadingDirection readingDirection;
   final ComicImageQuality quality;
   final bool animatePageTurns;
 
-  /// Which edges of the screen count as "tap to turn the page": horizontal
-  /// taps the left/right edges, vertical taps the top/bottom edges.
-  /// Independent of [direction] — e.g. a vertical continuous-scroll comic
-  /// can still use left/right taps to jump a page.
+  /// Which edges of the screen count as "tap to turn the page" — independent
+  /// of [readingDirection], so e.g. top/bottom taps can still be used to
+  /// turn pages that read left-to-right.
   final ComicDirection tapZoneDirection;
 
   /// Fraction (0.2–0.5, picked from a small preset list in Settings) of the
@@ -54,7 +57,7 @@ class ComicSettings {
 
   const ComicSettings({
     required this.viewMode,
-    required this.direction,
+    required this.readingDirection,
     required this.quality,
     required this.animatePageTurns,
     required this.tapZoneDirection,
@@ -64,7 +67,7 @@ class ComicSettings {
 
   static const defaults = ComicSettings(
     viewMode: ComicViewMode.single,
-    direction: ComicDirection.horizontal,
+    readingDirection: ComicReadingDirection.ltr,
     quality: ComicImageQuality.medium,
     animatePageTurns: true,
     tapZoneDirection: ComicDirection.horizontal,
@@ -76,7 +79,7 @@ class ComicSettings {
 
   ComicSettings copyWith({
     ComicViewMode? viewMode,
-    ComicDirection? direction,
+    ComicReadingDirection? readingDirection,
     ComicImageQuality? quality,
     bool? animatePageTurns,
     ComicDirection? tapZoneDirection,
@@ -85,7 +88,7 @@ class ComicSettings {
   }) {
     return ComicSettings(
       viewMode: viewMode ?? this.viewMode,
-      direction: direction ?? this.direction,
+      readingDirection: readingDirection ?? this.readingDirection,
       quality: quality ?? this.quality,
       animatePageTurns: animatePageTurns ?? this.animatePageTurns,
       tapZoneDirection: tapZoneDirection ?? this.tapZoneDirection,
@@ -96,7 +99,7 @@ class ComicSettings {
 
   Map<String, dynamic> toMap() => {
     'viewMode': viewMode.name,
-    'direction': direction.name,
+    'readingDirection': readingDirection.name,
     'quality': quality.name,
     'animatePageTurns': animatePageTurns,
     'tapZoneDirection': tapZoneDirection.name,
@@ -109,9 +112,9 @@ class ComicSettings {
       (v) => v.name == raw['viewMode'],
       orElse: () => ComicViewMode.single,
     ),
-    direction: ComicDirection.values.firstWhere(
-      (v) => v.name == raw['direction'],
-      orElse: () => ComicDirection.horizontal,
+    readingDirection: ComicReadingDirection.values.firstWhere(
+      (v) => v.name == raw['readingDirection'],
+      orElse: () => ComicReadingDirection.ltr,
     ),
     quality: ComicImageQuality.values.firstWhere(
       (v) => v.name == raw['quality'],
