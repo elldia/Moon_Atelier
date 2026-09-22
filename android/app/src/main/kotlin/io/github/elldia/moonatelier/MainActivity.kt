@@ -1,4 +1,4 @@
-package com.ebk.ebk
+package io.github.elldia.moonatelier
 
 import io.flutter.embedding.android.FlutterActivity
 
