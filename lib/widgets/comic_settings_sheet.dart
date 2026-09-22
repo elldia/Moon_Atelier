@@ -105,6 +105,15 @@ class _ComicSettingsSheet extends StatelessWidget {
                             _setReading((s) => s.copyWith(themeMode: v.first)),
                       ),
                       const SizedBox(height: 16),
+                      _SectionLabel(tr('background_color')),
+                      _ComicBackgroundSelector(
+                        value: settings.backgroundKey,
+                        onChanged: (v) =>
+                            _set((s) => s.copyWith(backgroundKey: v)),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 16),
                       _SectionLabel(tr('comic_view_mode_section')),
                       Wrap(
                         spacing: 8,
@@ -154,13 +163,6 @@ class _ComicSettingsSheet extends StatelessWidget {
                                   _set((s) => s.copyWith(quality: q)),
                             ),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionLabel(tr('background_color')),
-                      _ComicBackgroundSelector(
-                        value: settings.backgroundKey,
-                        onChanged: (v) =>
-                            _set((s) => s.copyWith(backgroundKey: v)),
                       ),
                       const SizedBox(height: 16),
                       _SectionLabel(tr('comic_tap_zone_section')),
