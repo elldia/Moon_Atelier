@@ -68,12 +68,6 @@ const _dict = <String, List<String>>{
   'comic_view_mode_section': ['보기 방식', 'View Mode', '表示方式', '显示方式'],
   'comic_view_single': ['한 장씩', 'Single Page', '1ページずつ', '单页'],
   'comic_view_twoPage': ['두 장씩', 'Two Pages', '2ページずつ', '双页'],
-  'comic_view_continuousScroll': [
-    '이어보기(스크롤)',
-    'Continuous Scroll',
-    '連続スクロール',
-    '连续滚动',
-  ],
   'comic_direction_section': ['넘기는 방향', 'Direction', 'めくる方向', '翻页方向'],
   'comic_dir_horizontal': ['가로', 'Horizontal', '横', '横向'],
   'comic_dir_vertical': ['세로', 'Vertical', '縦', '纵向'],

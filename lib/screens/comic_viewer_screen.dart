@@ -18,9 +18,9 @@ import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
 
-/// A comic archive viewer supporting three view modes (single page, two-page
-/// spread, continuous scroll) each combinable with either page-turn/scroll
-/// direction (horizontal/vertical) — mirroring [PdfViewerScreen]'s
+/// A comic archive viewer supporting two view modes: single page (either
+/// page-turn direction) and two-page spread (always horizontal, pages
+/// meeting center-aligned like a real book) — mirroring [PdfViewerScreen]'s
 /// bookmarks/progress UX, plus arrow-key navigation and a
 /// sharp/medium/smooth image-quality choice.
 class ComicViewerScreen extends StatefulWidget {
@@ -49,8 +49,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   ComicArchive? _archive;
   Object? _loadError;
 
-  PageController? _pageController; // single / twoPage modes
-  ScrollController? _scrollController; // continuousScroll mode
+  PageController? _pageController;
 
   ComicViewMode _mode = ComicViewMode.single;
   ComicDirection _direction = ComicDirection.horizontal;
@@ -61,6 +60,15 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   DateTime? _lastWheelPageTurn;
 
   int get _spreadCount => (_archive!.pageCount / 2).ceil();
+
+  /// Two-page spreads always turn horizontally, like a real book, no matter
+  /// what the direction setting says — that setting only means anything for
+  /// single-page mode (see comic_settings_sheet.dart, which hides the
+  /// direction picker for two-page spreads for the same reason).
+  ComicDirection _effectiveDirection(ComicSettings settings) =>
+      settings.viewMode == ComicViewMode.twoPage
+      ? ComicDirection.horizontal
+      : settings.direction;
 
   @override
   void initState() {
@@ -78,7 +86,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     }
     final settings = ComicSettingsController.instance.value;
     _mode = settings.viewMode;
-    _direction = settings.direction;
+    _direction = _effectiveDirection(settings);
     _initControllers();
     ComicSettingsController.instance.addListener(_onSettingsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
@@ -92,9 +100,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   /// brief hitch right as a page turn lands.
   void _precacheNeighbors() {
     final archive = _archive;
-    if (archive == null ||
-        !mounted ||
-        _mode == ComicViewMode.continuousScroll) {
+    if (archive == null || !mounted) {
       return;
     }
     final count = archive.pageCount;
@@ -108,70 +114,32 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   void _initControllers() {
     _pageController?.dispose();
     _pageController = null;
-    _scrollController?.removeListener(_onScroll);
-    _scrollController?.dispose();
-    _scrollController = null;
     if (_archive == null) return;
 
-    if (_mode == ComicViewMode.continuousScroll) {
-      _scrollController = ScrollController();
-      _scrollController!.addListener(_onScroll);
-      if (_page > 1) {
-        final targetPage = _page;
-        WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _scrollToPageRatio(targetPage, animate: false),
-        );
-      }
-    } else {
-      final itemCount = _mode == ComicViewMode.twoPage
-          ? _spreadCount
-          : _archive!.pageCount;
-      final initialIndex = _mode == ComicViewMode.twoPage
-          ? (_page - 1) ~/ 2
-          : _page - 1;
-      _pageController = PageController(
-        initialPage: initialIndex.clamp(0, itemCount - 1),
-      );
-    }
+    final itemCount = _mode == ComicViewMode.twoPage
+        ? _spreadCount
+        : _archive!.pageCount;
+    final initialIndex = _mode == ComicViewMode.twoPage
+        ? (_page - 1) ~/ 2
+        : _page - 1;
+    _pageController = PageController(
+      initialPage: initialIndex.clamp(0, itemCount - 1),
+    );
   }
 
   void _onSettingsChanged() {
     final settings = ComicSettingsController.instance.value;
-    if (settings.viewMode == _mode && settings.direction == _direction) {
+    final effectiveDirection = _effectiveDirection(settings);
+    if (settings.viewMode == _mode && effectiveDirection == _direction) {
       setState(() {}); // quality-only change: just repaint with new filter
       return;
     }
     setState(() {
       _mode = settings.viewMode;
-      _direction = settings.direction;
+      _direction = effectiveDirection;
       _initControllers();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _precacheNeighbors());
-  }
-
-  /// Scrolls to the position [page] would occupy if every page shared an
-  /// equal fraction of the total scrollable extent. Comic pages are rarely
-  /// identical sizes, so this is an approximation — but it needs no
-  /// RenderObject introspection (each page's real on-screen extent isn't
-  /// known until Flutter lays it out, and only nearby pages are ever built
-  /// at once in a lazy list), and it self-corrects as the user keeps
-  /// scrolling for real.
-  void _scrollToPageRatio(int page, {required bool animate}) {
-    final controller = _scrollController;
-    if (!mounted || controller == null || !controller.hasClients) return;
-    final count = _archive?.pageCount ?? 0;
-    if (count <= 1) return;
-    final maxExtent = controller.position.maxScrollExtent;
-    final target = (maxExtent * (page - 1) / (count - 1)).clamp(0.0, maxExtent);
-    if (animate) {
-      controller.animateTo(
-        target,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.ease,
-      );
-    } else {
-      controller.jumpTo(target);
-    }
   }
 
   @override
@@ -179,8 +147,6 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     ComicSettingsController.instance.removeListener(_onSettingsChanged);
     _saveDebounce?.cancel();
     _pageController?.dispose();
-    _scrollController?.removeListener(_onScroll);
-    _scrollController?.dispose();
     super.dispose();
   }
 
@@ -200,44 +166,11 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     _saveDebounce = Timer(const Duration(milliseconds: 500), _persistPosition);
   }
 
-  void _onScroll() {
-    _saveDebounce?.cancel();
-    _saveDebounce = Timer(const Duration(milliseconds: 300), () {
-      final page = _estimatePageFromOffset();
-      if (page != null && page != _page) setState(() => _page = page);
-      _persistPosition();
-    });
-  }
-
-  /// The inverse of [_scrollToPageRatio]'s mapping: which page the current
-  /// scroll offset's fraction of the total extent corresponds to.
-  int? _estimatePageFromOffset() {
-    final controller = _scrollController;
-    if (controller == null || !controller.hasClients) return null;
-    final count = _archive?.pageCount ?? 0;
-    if (count <= 1) return count == 1 ? 1 : null;
-    final maxExtent = controller.position.maxScrollExtent;
-    if (maxExtent <= 0) return 1;
-    final ratio = (controller.offset / maxExtent).clamp(0.0, 1.0);
-    return (ratio * (count - 1)).round() + 1;
-  }
-
   void _jumpToPage(int target) {
     final count = _archive?.pageCount ?? 0;
     if (count == 0) return;
     final clamped = target.clamp(1, count);
     final animate = ComicSettingsController.instance.value.animatePageTurns;
-
-    if (_mode == ComicViewMode.continuousScroll) {
-      _scrollToPageRatio(clamped, animate: animate);
-      setState(() => _page = clamped);
-      _saveDebounce?.cancel();
-      _saveDebounce = Timer(
-        const Duration(milliseconds: 300),
-        _persistPosition,
-      );
-      return;
-    }
 
     final itemCount = _mode == ComicViewMode.twoPage ? _spreadCount : count;
     final targetIndex =
@@ -255,14 +188,11 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     _precacheNeighbors();
   }
 
-  /// Mouse-wheel/trackpad equivalent of the arrow-key page turn (single and
-  /// two-page mode only — continuous scroll already scrolls natively from
-  /// wheel input via its own [SingleChildScrollView]). Debounced so one
-  /// physical wheel "notch" — which can fire several scroll events in a
-  /// browser — turns exactly one page instead of several.
+  /// Mouse-wheel/trackpad equivalent of the arrow-key page turn. Debounced
+  /// so one physical wheel "notch" — which can fire several scroll events
+  /// in a browser — turns exactly one page instead of several.
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
-    if (_mode == ComicViewMode.continuousScroll) return;
     final delta = event.scrollDelta.dy.abs() >= event.scrollDelta.dx.abs()
         ? event.scrollDelta.dy
         : event.scrollDelta.dx;
@@ -341,10 +271,15 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     if (page is int) _jumpToPage(page);
   }
 
-  Widget _pageImage(int index, ComicImageQuality quality) {
+  Widget _pageImage(
+    int index,
+    ComicImageQuality quality, {
+    Alignment alignment = Alignment.center,
+  }) {
     return InteractiveViewer(
       maxScale: 4,
-      child: Center(
+      child: Align(
+        alignment: alignment,
         child: Image.memory(
           _archive!.pageBytes(index),
           fit: BoxFit.contain,
@@ -367,42 +302,32 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
         if (!isTwoPage) return _pageImage(index, quality);
         final firstIdx = index * 2;
         final secondIdx = firstIdx + 1;
-        final children = [
-          Expanded(child: _pageImage(firstIdx, quality)),
-          Expanded(
-            child: secondIdx < count
-                ? _pageImage(secondIdx, quality)
-                : const SizedBox.shrink(),
-          ),
-        ];
-        return _direction == ComicDirection.horizontal
-            ? Row(children: children)
-            : Column(children: children);
+        // Two-page spreads always turn horizontally (see
+        // _effectiveDirection) and align each page toward the spine in the
+        // middle — like a real book, rather than each half independently
+        // centering its own page, which can leave a gap in the middle when
+        // the two pages aren't the same width.
+        return Row(
+          children: [
+            Expanded(
+              child: _pageImage(
+                firstIdx,
+                quality,
+                alignment: Alignment.centerRight,
+              ),
+            ),
+            Expanded(
+              child: secondIdx < count
+                  ? _pageImage(
+                      secondIdx,
+                      quality,
+                      alignment: Alignment.centerLeft,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        );
       },
-    );
-  }
-
-  // Continuous scroll is always a vertical (webtoon-style) strip, regardless
-  // of the direction setting — that setting only applies to page-turning in
-  // single/two-page mode. Scrolling sideways through a strip of full-height
-  // pages isn't how anyone actually reads a continuous comic.
-  Widget _buildContinuousScroll(
-    ComicImageQuality quality,
-    BuildContext context,
-  ) {
-    final size = MediaQuery.sizeOf(context);
-    final images = [
-      for (var index = 0; index < _archive!.pageCount; index++)
-        Image.memory(
-          _archive!.pageBytes(index),
-          width: size.width,
-          fit: BoxFit.fitWidth,
-          filterQuality: quality.filterQuality,
-        ),
-    ];
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Column(mainAxisSize: MainAxisSize.min, children: images),
     );
   }
 
@@ -541,10 +466,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
                   // the whole screen, leaving no middle strip to tap for the
                   // UI toggle — long-press always reaches it as a fallback.
                   onLongPress: () => setState(() => _uiVisible = !_uiVisible),
-                  child:
-                      comicSettings.viewMode == ComicViewMode.continuousScroll
-                      ? _buildContinuousScroll(comicSettings.quality, context)
-                      : _buildPagedView(comicSettings.quality),
+                  child: _buildPagedView(comicSettings.quality),
                 ),
               ),
             ),

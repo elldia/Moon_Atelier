@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'reading_settings.dart' show ReadingBackground;
 
 /// How many pages are shown at once in the comic viewer.
-enum ComicViewMode { single, twoPage, continuousScroll }
+enum ComicViewMode { single, twoPage }
 
 /// Which axis pages turn/scroll along.
 enum ComicDirection { horizontal, vertical }

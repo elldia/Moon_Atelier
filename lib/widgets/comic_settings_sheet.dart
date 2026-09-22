@@ -123,16 +123,22 @@ class _ComicSettingsSheet extends StatelessWidget {
                             ChoiceChip(
                               label: Text(tr('comic_view_${mode.name}')),
                               selected: settings.viewMode == mode,
-                              onSelected: (_) =>
-                                  _set((s) => s.copyWith(viewMode: mode)),
+                              onSelected: (_) => _set(
+                                (s) => s.copyWith(
+                                  viewMode: mode,
+                                  // Two-page spreads always turn
+                                  // horizontally, like a real book.
+                                  direction: mode == ComicViewMode.twoPage
+                                      ? ComicDirection.horizontal
+                                      : s.direction,
+                                ),
+                              ),
                             ),
                         ],
                       ),
-                      // Continuous scroll is always vertical (see
-                      // ComicViewerScreen._buildContinuousScroll), so this
-                      // choice only means anything for single/two-page mode.
-                      if (settings.viewMode !=
-                          ComicViewMode.continuousScroll) ...[
+                      // Two-page spreads force horizontal (see above), so
+                      // this choice only means anything in single-page mode.
+                      if (settings.viewMode == ComicViewMode.single) ...[
                         const SizedBox(height: 16),
                         _SectionLabel(tr('comic_direction_section')),
                         Wrap(

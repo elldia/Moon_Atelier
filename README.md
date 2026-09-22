@@ -45,12 +45,12 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 
 ### 만화 뷰어
 - CBZ, ZIP 만화책을 페이지 단위로 감상(전자책과는 별도의 만화 서재)
-- 보기 방식: 한 장씩 / 두 장씩(스프레드) / 이어보기(세로 스크롤, 웹툰 방식)
-- 한 장·두 장 보기에서는 넘기는 방향(가로/세로)도 선택 가능(이어보기는 항상 세로 스크롤)
+- 보기 방식: 한 장씩 / 두 장씩(스프레드) — 두 장씩 볼 때는 실제 책처럼 넘기는 방향이 항상 가로로 고정되고, 두 페이지가 가운데(책등)에서 맞닿도록 정렬됨
+- 한 장씩 볼 때는 넘기는 방향(가로/세로)을 선택 가능
 - 화면 가장자리를 탭하면 이전/다음 페이지로 넘어가고 가운데를 탭하면 화면 UI가 보이거나 숨겨짐 — 탭 영역의 방향과 크기(화면의 25~50%)를 설정에서 조절 가능(길게 누르면 항상 UI 전환)
 - 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능
 - 이미지 화질(선명하게/평균/부드럽게) 선택 및 페이지 전환 애니메이션 켜기/끄기
-- 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시, 100페이지 이상은 ±10페이지 이동 버튼 추가
+- 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시
 - 배경색 5종 프리셋(화이트/세피아/그레이/다크/블랙, 기본값 블랙)을 이북과 별도로 선택 가능
 - 보기 설정 창에서 인터페이스 언어(한국어/English/日本語/中文)와 화면 모드(시스템/라이트/다크)도 함께 변경 가능(이북 설정과 값 공유)
 - 보기 설정은 화면 중앙에 뜨는 별도 창(화면의 80% 크기)에서 즉시 적용
@@ -97,12 +97,12 @@ A glassmorphism-styled web ebook reader built with Flutter.
 
 ### Comic Viewer
 - Read CBZ/ZIP comic archives page by page, in its own library separate from the e-book reader
-- View modes: single page, two-page spread, or continuous (vertical, webtoon-style) scroll
-- Single/two-page modes also let you pick the page-turn direction (horizontal/vertical); continuous scroll is always vertical
+- View modes: single page or two-page spread — spreads always turn horizontally like a real book, with the two pages center-aligned so they meet at the spine
+- Single-page mode also lets you pick the page-turn direction (horizontal/vertical)
 - Tap an edge of the screen to turn to the previous/next page, or the middle to show/hide the UI — both the tap zones' direction and size (25-50% of the screen) are configurable from Settings (long-press always toggles the UI as a fallback)
 - Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns
 - Choice of image quality (sharp/medium/smooth) and a toggle for the page-turn animation
-- Add bookmarks and jump back to them from a list; a progress indicator (page/total, %) up top, with extra ±10-page jump buttons past 100 pages
+- Add bookmarks and jump back to them from a list, plus a progress indicator (page/total, %) up top
 - Choose from 5 background presets (white/sepia/gray/dark/black, black by default), independent of the e-book reader's background
 - The settings dialog also lets you change the interface language (한국어/English/日本語/中文) and display mode (system/light/dark) — these are shared with the e-book reader's settings
 - Settings open in their own dialog, centered over the viewer at 80% of the screen size, applying instantly
