@@ -29,6 +29,7 @@ import '../widgets/ftp_browser_dialog.dart';
 import '../widgets/wifi_transfer_dialog.dart';
 import '../widgets/glass.dart';
 import '../widgets/onboarding_overlay.dart';
+import '../widgets/comic_settings_sheet.dart';
 import '../widgets/reading_settings_sheet.dart';
 import '../utils/comic_archive.dart';
 import 'comic_viewer_screen.dart';
@@ -697,9 +698,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _createNote() async {
-    final result = await Navigator.of(
-      context,
-    ).push<NoteResult>(MaterialPageRoute(builder: (_) => const NoteEditorScreen()));
+    final result = await Navigator.of(context).push<NoteResult>(
+      MaterialPageRoute(builder: (_) => const NoteEditorScreen()),
+    );
     if (!mounted || result == null) return;
     await _addBook(
       name: result.title,
@@ -1213,14 +1214,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
           onSelected: (v) {
             if (v == 'sort') _pickSort();
             if (v == 'trash') _toggleSelectionMode();
-            if (v == 'settings') showReadingSettingsSheet(context);
+            if (v == 'settings') {
+              _isComic
+                  ? showComicSettingsSheet(context)
+                  : showReadingSettingsSheet(context);
+            }
           },
           itemBuilder: (context) => [
             PopupMenuItem(value: 'sort', child: Text(tr('sort'))),
             PopupMenuItem(value: 'trash', child: Text(tr('select_delete'))),
             PopupMenuItem(
               value: 'settings',
-              child: Text(tr('reading_settings')),
+              child: Text(
+                _isComic ? tr('comic_settings_title') : tr('reading_settings'),
+              ),
             ),
           ],
         ),
@@ -1247,9 +1254,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       IconButton(
         key: _settingsKey,
-        tooltip: tr('reading_settings'),
+        tooltip: _isComic ? tr('comic_settings_title') : tr('reading_settings'),
         icon: const Icon(Icons.tune),
-        onPressed: () => showReadingSettingsSheet(context),
+        onPressed: () => _isComic
+            ? showComicSettingsSheet(context)
+            : showReadingSettingsSheet(context),
       ),
     ];
   }
@@ -1317,9 +1326,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   )
                 : Text(
                     folder?.name ??
-                        (_isComic
-                            ? tr('comic_library_title')
-                            : appName.label),
+                        (_isComic ? tr('comic_library_title') : appName.label),
                     overflow: TextOverflow.ellipsis,
                   ),
             actions: _buildActions(

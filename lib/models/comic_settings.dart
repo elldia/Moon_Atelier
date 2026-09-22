@@ -37,9 +37,10 @@ class ComicSettings {
   /// can still use left/right taps to jump a page.
   final ComicDirection tapZoneDirection;
 
-  /// Fraction (0.25–0.5) of the screen's width (or height, in vertical tap
-  /// zones) that counts as the "previous"/"next" tap zone on each edge. The
-  /// remaining middle strip toggles the reading UI, as before.
+  /// Fraction (0.2–0.5, picked from a small preset list in Settings) of the
+  /// screen's width (or height, in vertical tap zones) that counts as the
+  /// "previous"/"next" tap zone on each edge. The remaining middle strip
+  /// toggles the reading UI, as before.
   final double tapZoneFraction;
 
   const ComicSettings({
@@ -105,8 +106,9 @@ class ComicSettings {
       (v) => v.name == raw['tapZoneDirection'],
       orElse: () => ComicDirection.horizontal,
     ),
-    tapZoneFraction: ((raw['tapZoneFraction'] as num?) ?? 0.3)
-        .toDouble()
-        .clamp(0.25, 0.5),
+    tapZoneFraction: ((raw['tapZoneFraction'] as num?) ?? 0.3).toDouble().clamp(
+      0.2,
+      0.5,
+    ),
   );
 }

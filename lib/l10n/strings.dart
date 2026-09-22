@@ -59,14 +59,26 @@ const _dict = <String, List<String>>{
     '可以打开CBZ及仅含图片的ZIP漫画文件。',
   ],
   'comic_settings': ['보기 설정', 'View Settings', '表示設定', '显示设置'],
-  'comic_settings_title': ['만화 보기 설정', 'Comic View Settings', 'コミック表示設定', '漫画显示设置'],
+  'comic_settings_title': [
+    '만화 보기 설정',
+    'Comic View Settings',
+    'コミック表示設定',
+    '漫画显示设置',
+  ],
   'comic_view_mode_section': ['보기 방식', 'View Mode', '表示方式', '显示方式'],
   'comic_view_single': ['한 장씩', 'Single Page', '1ページずつ', '单页'],
   'comic_view_twoPage': ['두 장씩', 'Two Pages', '2ページずつ', '双页'],
-  'comic_view_continuousScroll': ['이어보기(스크롤)', 'Continuous Scroll', '連続スクロール', '连续滚动'],
+  'comic_view_continuousScroll': [
+    '이어보기(스크롤)',
+    'Continuous Scroll',
+    '連続スクロール',
+    '连续滚动',
+  ],
   'comic_direction_section': ['넘기는 방향', 'Direction', 'めくる方向', '翻页方向'],
   'comic_dir_horizontal': ['가로', 'Horizontal', '横', '横向'],
   'comic_dir_vertical': ['세로', 'Vertical', '縦', '纵向'],
+  'comic_tap_dir_horizontal': ['좌/우 터치', 'Left/Right Touch', '左右タップ', '左右点击'],
+  'comic_tap_dir_vertical': ['상/하 터치', 'Up/Down Touch', '上下タップ', '上下点击'],
   'comic_quality_section': ['이미지 화질', 'Image Quality', '画質', '画质'],
   'comic_quality_sharp': ['선명하게', 'Sharp', 'シャープ', '锐利'],
   'comic_quality_medium': ['평균', 'Medium', '標準', '中等'],
@@ -79,7 +91,12 @@ const _dict = <String, List<String>>{
     '轻触屏幕边缘可跳转到上一页/下一页,轻触中间可显示或隐藏界面。',
   ],
   'comic_tap_zone_size': ['탭 영역 크기', 'Tap Zone Size', 'タップ範囲', '触控区域大小'],
-  'comic_animate_section': ['페이지 전환 효과', 'Page Turn Animation', 'ページ切り替え効果', '翻页动画'],
+  'comic_animate_section': [
+    '페이지 전환 효과',
+    'Page Turn Animation',
+    'ページ切り替え効果',
+    '翻页动画',
+  ],
   'comic_animate_title': [
     '넘길 때 애니메이션',
     'Animate page turns',
@@ -444,12 +461,7 @@ const _dict = <String, List<String>>{
     'ユーザー名(空欄で匿名)',
     '用户名(留空为匿名)',
   ],
-  'ftp_password_optional': [
-    '비밀번호',
-    'Password',
-    'パスワード',
-    '密码',
-  ],
+  'ftp_password_optional': ['비밀번호', 'Password', 'パスワード', '密码'],
   'ftp_connect': ['연결', 'Connect', '接続', '连接'],
   'ftp_connect_failed': [
     'FTP 서버에 연결하지 못했습니다: {error}',
@@ -505,12 +517,7 @@ const _dict = <String, List<String>>{
     'Wi-Fi転送中にエラーが発生しました: {error}',
     'Wi-Fi传输时发生错误: {error}',
   ],
-  'url_copied': [
-    '주소를 복사했습니다.',
-    'Address copied.',
-    'アドレスをコピーしました。',
-    '已复制地址。',
-  ],
+  'url_copied': ['주소를 복사했습니다.', 'Address copied.', 'アドレスをコピーしました。', '已复制地址。'],
 
   // Onboarding
   'onb_next': ['다음', 'Next', '次へ', '下一步'],
@@ -681,12 +688,7 @@ const _dict = <String, List<String>>{
   'note_edit': ['수정', 'Edit', '編集', '编辑'],
 
   // Markdown shortcuts cheatsheet (note editor)
-  'md_help_title': [
-    '글쓰기 서식 안내',
-    'Formatting Cheatsheet',
-    '書式ガイド',
-    '格式速查',
-  ],
+  'md_help_title': ['글쓰기 서식 안내', 'Formatting Cheatsheet', '書式ガイド', '格式速查'],
   'md_help_intro': [
     '아래 기호를 넣으면 자동으로 서식이 적용돼요.',
     'Type these and they turn into formatting automatically.',
@@ -732,7 +734,12 @@ const _dict = <String, List<String>>{
     'メールで送るはモバイルのみ対応しています。',
     '通过邮件发送仅支持移动端。',
   ],
-  'backup_done': ['백업 파일을 저장했어요.', 'Backup saved.', 'バックアップを保存しました。', '备份文件已保存。'],
+  'backup_done': [
+    '백업 파일을 저장했어요.',
+    'Backup saved.',
+    'バックアップを保存しました。',
+    '备份文件已保存。',
+  ],
   'backup_email_subject': [
     'Moon Atelier 백업',
     'Moon Atelier Backup',
