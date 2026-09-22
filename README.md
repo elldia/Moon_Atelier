@@ -51,6 +51,8 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능
 - 이미지 화질(선명하게/평균/부드럽게) 선택 및 페이지 전환 애니메이션 켜기/끄기
 - 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시, 100페이지 이상은 ±10페이지 이동 버튼 추가
+- 배경색 5종 프리셋(화이트/세피아/그레이/다크/블랙, 기본값 블랙)을 이북과 별도로 선택 가능
+- 보기 설정 창에서 인터페이스 언어(한국어/English/日本語/中文)와 화면 모드(시스템/라이트/다크)도 함께 변경 가능(이북 설정과 값 공유)
 - 보기 설정은 화면 중앙에 뜨는 별도 창(화면의 80% 크기)에서 즉시 적용
 
 ## English
@@ -101,6 +103,8 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns
 - Choice of image quality (sharp/medium/smooth) and a toggle for the page-turn animation
 - Add bookmarks and jump back to them from a list; a progress indicator (page/total, %) up top, with extra ±10-page jump buttons past 100 pages
+- Choose from 5 background presets (white/sepia/gray/dark/black, black by default), independent of the e-book reader's background
+- The settings dialog also lets you change the interface language (한국어/English/日本語/中文) and display mode (system/light/dark) — these are shared with the e-book reader's settings
 - Settings open in their own dialog, centered over the viewer at 80% of the screen size, applying instantly
 
 ## Getting started

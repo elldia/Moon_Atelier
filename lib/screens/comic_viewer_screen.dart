@@ -455,7 +455,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
             : const SizedBox.shrink();
 
         return Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: comicSettings.background.color,
           appBar: !_uiVisible
               ? null
               : glassAppBar(

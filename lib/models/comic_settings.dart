@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'reading_settings.dart' show ReadingBackground;
+
 /// How many pages are shown at once in the comic viewer.
 enum ComicViewMode { single, twoPage, continuousScroll }
 
@@ -43,6 +45,13 @@ class ComicSettings {
   /// toggles the reading UI, as before.
   final double tapZoneFraction;
 
+  /// The comic viewer's own background preset (behind/around pages that
+  /// don't fill the screen) — separate from [ReadingSettings.backgroundKey]
+  /// since the e-book reader and the comic viewer are read independently
+  /// and rarely want the same background (e.g. black behind comic pages,
+  /// white behind text).
+  final String backgroundKey;
+
   const ComicSettings({
     required this.viewMode,
     required this.direction,
@@ -50,6 +59,7 @@ class ComicSettings {
     required this.animatePageTurns,
     required this.tapZoneDirection,
     required this.tapZoneFraction,
+    required this.backgroundKey,
   });
 
   static const defaults = ComicSettings(
@@ -59,7 +69,10 @@ class ComicSettings {
     animatePageTurns: true,
     tapZoneDirection: ComicDirection.horizontal,
     tapZoneFraction: 0.3,
+    backgroundKey: 'black',
   );
+
+  ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
 
   ComicSettings copyWith({
     ComicViewMode? viewMode,
@@ -68,6 +81,7 @@ class ComicSettings {
     bool? animatePageTurns,
     ComicDirection? tapZoneDirection,
     double? tapZoneFraction,
+    String? backgroundKey,
   }) {
     return ComicSettings(
       viewMode: viewMode ?? this.viewMode,
@@ -76,6 +90,7 @@ class ComicSettings {
       animatePageTurns: animatePageTurns ?? this.animatePageTurns,
       tapZoneDirection: tapZoneDirection ?? this.tapZoneDirection,
       tapZoneFraction: tapZoneFraction ?? this.tapZoneFraction,
+      backgroundKey: backgroundKey ?? this.backgroundKey,
     );
   }
 
@@ -86,6 +101,7 @@ class ComicSettings {
     'animatePageTurns': animatePageTurns,
     'tapZoneDirection': tapZoneDirection.name,
     'tapZoneFraction': tapZoneFraction,
+    'backgroundKey': backgroundKey,
   };
 
   factory ComicSettings.fromMap(Map raw) => ComicSettings(
@@ -110,5 +126,6 @@ class ComicSettings {
       0.2,
       0.5,
     ),
+    backgroundKey: raw['backgroundKey'] as String? ?? 'black',
   );
 }

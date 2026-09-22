@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../data/comic_settings_controller.dart';
+import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/comic_settings.dart';
+import '../models/reading_settings.dart';
 import 'glass.dart';
 
 /// Opens the comic-viewer preferences dialog (view mode, page-turn
-/// direction, image quality), centered over the viewer at 80% of the
-/// screen's width/height. Unlike the e-book reading-settings dialog,
-/// changes apply immediately — there's no draft/cancel step — since the
-/// effect (page layout, filter quality) is safe to preview live behind it.
+/// direction, image quality, plus the app-wide language/display-mode and
+/// the comic viewer's own background color), centered over the viewer at
+/// 80% of the screen's width/height. Unlike the e-book reading-settings
+/// dialog, changes apply immediately — there's no draft/cancel step —
+/// since every effect here is safe to preview live behind it.
 Future<void> showComicSettingsSheet(BuildContext context) {
   return showDialog<void>(
     context: context,
@@ -22,6 +25,10 @@ class _ComicSettingsSheet extends StatelessWidget {
 
   void _set(ComicSettings Function(ComicSettings current) updater) {
     ComicSettingsController.instance.update(updater);
+  }
+
+  void _setReading(ReadingSettings Function(ReadingSettings current) updater) {
+    ReadingSettingsController.instance.update(updater);
   }
 
   @override
@@ -37,9 +44,14 @@ class _ComicSettingsSheet extends StatelessWidget {
           opacity: 0.8,
           child: SafeArea(
             child: AnimatedBuilder(
-              animation: ComicSettingsController.instance,
+              animation: Listenable.merge([
+                ComicSettingsController.instance,
+                ReadingSettingsController.instance,
+              ]),
               builder: (context, _) {
                 final settings = ComicSettingsController.instance.value;
+                final readingSettings =
+                    ReadingSettingsController.instance.value;
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -48,6 +60,49 @@ class _ComicSettingsSheet extends StatelessWidget {
                       Text(
                         tr('comic_settings_title'),
                         style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('language_section')),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final locale in AppLocale.values)
+                            ChoiceChip(
+                              label: Text(locale.label),
+                              selected: readingSettings.locale == locale,
+                              onSelected: (_) => _setReading(
+                                (s) => s.copyWith(
+                                  locale: locale,
+                                  appName: appBrandForLocale(locale),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('display_mode')),
+                      SegmentedButton<ThemeMode>(
+                        segments: [
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            label: Text(tr('system_mode')),
+                            icon: const Icon(Icons.brightness_auto),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            label: Text(tr('light_mode')),
+                            icon: const Icon(Icons.light_mode),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            label: Text(tr('dark_mode')),
+                            icon: const Icon(Icons.dark_mode),
+                          ),
+                        ],
+                        selected: {readingSettings.themeMode},
+                        onSelectionChanged: (v) =>
+                            _setReading((s) => s.copyWith(themeMode: v.first)),
                       ),
                       const SizedBox(height: 16),
                       _SectionLabel(tr('comic_view_mode_section')),
@@ -99,6 +154,13 @@ class _ComicSettingsSheet extends StatelessWidget {
                                   _set((s) => s.copyWith(quality: q)),
                             ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('background_color')),
+                      _ComicBackgroundSelector(
+                        value: settings.backgroundKey,
+                        onChanged: (v) =>
+                            _set((s) => s.copyWith(backgroundKey: v)),
                       ),
                       const SizedBox(height: 16),
                       _SectionLabel(tr('comic_tap_zone_section')),
@@ -289,6 +351,76 @@ class _TapZoneThumbnail extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The comic viewer's own background swatch picker — visually identical to
+/// the e-book reading dialog's, but a separate widget since that one's
+/// `_BackgroundSwatch` is private to its own file.
+class _ComicBackgroundSelector extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  const _ComicBackgroundSelector({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        for (final bg in ReadingBackground.presets)
+          _ComicBackgroundSwatch(
+            background: bg,
+            selected: value == bg.key,
+            onTap: () => onChanged(bg.key),
+          ),
+      ],
+    );
+  }
+}
+
+class _ComicBackgroundSwatch extends StatelessWidget {
+  final ReadingBackground background;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ComicBackgroundSwatch({
+    required this.background,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: background.color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor,
+                width: selected ? 3 : 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            backgroundLabel(background.key),
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
       ),
     );
   }
