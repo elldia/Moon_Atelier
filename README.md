@@ -42,6 +42,8 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 
 ### 인터페이스
 - 홈 화면에 가장 최근에 읽던 책/만화로 바로 이어보기 카드 표시(진행률 포함, 한 번도 안 읽었으면 표시 안 됨)
+- 홈 화면 하단에 개인정보처리방침 링크 상시 노출(플레이스토어 등 앱스토어 심사에서 앱 내부에서도 접근 가능해야 함)
+- 웹 버전에서는 브라우저 탭 제목이 화면에 따라 바뀜(홈: 앱 이름, 이북 서재/만화 서재: "앱 이름 | ebook" 또는 "앱 이름 | Comic"). 화면 안 제목은 이북/만화 서재 모두 "ebook Viewer" / "Comic Viewer"로 표시
 - 글래스모피즘(반투명 블러) 디자인, 320px 이하 좁은 화면까지 대응
 - 한국어 / English / 日本語 / 中文 4개 언어로 인터페이스 전환 가능
 - 앱 이름은 모든 언어에서 기본적으로 "Moon Atelier"로 표시되며, 한국어 설정에서는 설정 화면에서 "달빛서재"로 바꿀 수도 있음
@@ -99,6 +101,8 @@ A glassmorphism-styled web ebook reader built with Flutter.
 
 ### Interface
 - The home screen shows a "continue reading" card for the most recently opened book/comic, progress included (hidden until you've actually opened something)
+- A privacy policy link is always shown at the bottom of the home screen — app store review requires it to be reachable from inside the app, not just the store listing
+- On the web build, the browser tab title changes per screen (home: the app name, e-book/comic library: "App Name | ebook" or "App Name | Comic"); the on-screen title reads "ebook Viewer" / "Comic Viewer" for both libraries
 - Glassmorphism (translucent blur) design that holds up down to 320px width
 - Switch the interface language between 한국어 / English / 日本語 / 中文
 - The app defaults to the "Moon Atelier" display name in every language; in Korean, Settings also lets you switch it to "달빛서재"

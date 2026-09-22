@@ -6,6 +6,7 @@ import '../data/library_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/book.dart';
+import '../utils/browser_title.dart';
 import '../widgets/glass.dart';
 import 'library_screen.dart';
 
@@ -14,6 +15,16 @@ import 'library_screen.dart';
 /// builds get published there without this app needing an update.
 final _windowsDownloadUrl = Uri.parse(
   'https://github.com/elldia/Moon_Atelier/releases',
+);
+
+/// Google Play requires the privacy policy to be reachable both from the
+/// Play Console store listing *and* from inside the app itself — this link
+/// is that second copy, shown on every platform (not just web) so it's
+/// there for an Android review too. Hosted as a static page alongside the
+/// web build (see web/privacy.html) rather than as an in-app screen, so
+/// there's exactly one copy to keep accurate.
+final _privacyPolicyUrl = Uri.parse(
+  'https://elldia.github.io/Moon_Atelier/privacy.html',
 );
 
 /// The app's start screen: a fork between the two independent tools it
@@ -52,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       animation: ReadingSettingsController.instance,
       builder: (context, _) {
         final appName = ReadingSettingsController.instance.value.appName;
+        setBrowserTitle(appName.label);
         final recentlyOpened = LibraryStore.loadAll()
             .where((b) => b.lastOpenedAt != null)
             .toList();
@@ -106,6 +118,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: () => launchUrl(
+                          _privacyPolicyUrl,
+                          webOnlyWindowName: '_blank',
+                        ),
+                        child: Text(
+                          tr('privacy_policy'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ],
                   ),
                 ),

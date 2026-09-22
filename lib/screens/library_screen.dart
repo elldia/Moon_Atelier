@@ -12,6 +12,7 @@ import '../models/book.dart';
 import '../models/folder.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
+import '../utils/browser_title.dart';
 import '../utils/docx_text_extractor.dart';
 import '../utils/dropbox_picker.dart';
 import '../utils/epub_toc_patcher.dart';
@@ -1344,6 +1345,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       builder: (context, _) {
         final settings = ReadingSettingsController.instance.value;
         final appName = settings.appName;
+        setBrowserTitle('${appName.label} | ${_isComic ? 'Comic' : 'ebook'}');
         return Scaffold(
           appBar: glassAppBar(
             context,
@@ -1379,7 +1381,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   )
                 : Text(
                     folder?.name ??
-                        (_isComic ? tr('comic_library_title') : appName.label),
+                        (_isComic ? 'Comic Viewer' : 'ebook Viewer'),
                     overflow: TextOverflow.ellipsis,
                   ),
             actions: _buildActions(
