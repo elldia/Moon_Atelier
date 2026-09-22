@@ -50,6 +50,7 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 화면 가장자리를 탭하면 이전/다음 페이지로 넘어가고 가운데를 탭하면 화면 UI가 보이거나 숨겨짐 — 탭 영역의 방향과 크기(화면의 25~50%)를 설정에서 조절 가능(길게 누르면 항상 UI 전환)
 - 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능
 - 이미지 화질(선명하게/평균/부드럽게) 선택 및 페이지 전환 애니메이션 켜기/끄기
+- 원본 이미지가 화면 해상도보다 훨씬 큰 대용량 만화책도, 보이는 화질은 유지하면서 기기 해상도에 맞춰 자동으로 디코딩 크기를 줄여 더 빠르게 넘어감
 - 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시
 - 배경색 5종 프리셋(화이트/세피아/그레이/다크/블랙, 기본값 블랙)을 이북과 별도로 선택 가능
 - 보기 설정 창에서 인터페이스 언어(한국어/English/日本語/中文)와 화면 모드(시스템/라이트/다크)도 함께 변경 가능(이북 설정과 값 공유)
@@ -102,6 +103,7 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Tap an edge of the screen to turn to the previous/next page, or the middle to show/hide the UI — both the tap zones' direction and size (25-50% of the screen) are configurable from Settings (long-press always toggles the UI as a fallback)
 - Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns
 - Choice of image quality (sharp/medium/smooth) and a toggle for the page-turn animation
+- Large comics whose source images are much bigger than the screen decode faster automatically — pages are downscaled to match the device's resolution (with headroom for zoom) while keeping the visible quality the same
 - Add bookmarks and jump back to them from a list, plus a progress indicator (page/total, %) up top
 - Choose from 5 background presets (white/sepia/gray/dark/black, black by default), independent of the e-book reader's background
 - The settings dialog also lets you change the interface language (한국어/English/日本語/中文) and display mode (system/light/dark) — these are shared with the e-book reader's settings

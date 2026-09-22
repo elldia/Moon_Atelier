@@ -105,9 +105,13 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     }
     final count = archive.pageCount;
     final current = _page - 1;
+    final cacheWidth = _decodeCacheWidth();
     for (final idx in [current - 2, current - 1, current + 1, current + 2]) {
       if (idx < 0 || idx >= count) continue;
-      precacheImage(MemoryImage(archive.pageBytes(idx)), context);
+      final ImageProvider provider = cacheWidth == null
+          ? MemoryImage(archive.pageBytes(idx))
+          : ResizeImage(MemoryImage(archive.pageBytes(idx)), width: cacheWidth);
+      precacheImage(provider, context);
     }
   }
 
@@ -284,9 +288,29 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
           _archive!.pageBytes(index),
           fit: BoxFit.contain,
           filterQuality: quality.filterQuality,
+          cacheWidth: _decodeCacheWidth(),
         ),
       ),
     );
+  }
+
+  /// Caps how large Flutter decodes each page image to, based on the
+  /// device's own resolution — scanned comic pages routinely run
+  /// 2-4x a phone's screen width, and decoding one at full native size only
+  /// to immediately downscale it for display wastes decode time and memory
+  /// that shows up as slower page turns on big files. The 1.5x headroom
+  /// keeps some detail in reserve for [InteractiveViewer]'s pinch-zoom
+  /// without decoding at the source's full (often much larger) resolution.
+  /// Only the width is capped — height is left to scale to match so
+  /// [BoxFit.contain]'s aspect ratio isn't distorted — and Flutter's
+  /// decoder never upscales past a source image's native resolution, so
+  /// this is a no-op for pages already smaller than the screen.
+  int? _decodeCacheWidth() {
+    final mq = MediaQuery.maybeOf(context);
+    if (mq == null) return null;
+    final halves = _mode == ComicViewMode.twoPage ? 2 : 1;
+    final target = (mq.size.width / halves * mq.devicePixelRatio * 1.5).round();
+    return target > 0 ? target : null;
   }
 
   Widget _buildPagedView(ComicImageQuality quality) {
