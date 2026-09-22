@@ -17,6 +17,7 @@ import '../utils/dropbox_picker.dart';
 import '../utils/epub_toc_patcher.dart';
 import '../utils/file_pick_watchdog.dart';
 import '../utils/ftp_client.dart';
+import '../utils/hwpx_text_extractor.dart';
 import '../utils/musicxml_extractor.dart';
 import '../utils/onedrive_picker.dart';
 import '../utils/rtf_text_extractor.dart';
@@ -183,6 +184,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     'txt',
                     'docx',
                     'rtf',
+                    'hwpx',
                     'musicxml',
                     'mxl',
                     'zip',
@@ -238,6 +240,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     '.txt',
                     '.docx',
                     '.rtf',
+                    '.hwpx',
                     '.musicxml',
                     '.mxl',
                     '.zip',
@@ -296,7 +299,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           await chooseOneDriveFile(
             filter: _isComic
                 ? '.cbz,.zip'
-                : '.epub,.pdf,.txt,.docx,.rtf,.musicxml,.mxl,.zip',
+                : '.epub,.pdf,.txt,.docx,.rtf,.hwpx,.musicxml,.mxl,.zip',
             redirectUri: Uri.base.toString(),
           ).timeout(
             const Duration(seconds: 90),
@@ -926,6 +929,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
           formatLabel: 'RTF',
         );
         break;
+      case BookFormat.hwpx:
+        _openExtractedText(
+          book,
+          opened,
+          extract: extractHwpxText,
+          formatLabel: 'HWPX',
+        );
+        break;
       case BookFormat.musicXml:
         try {
           final xml = extractMusicXmlText(book.bytes);
@@ -1038,6 +1049,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case BookFormat.docx:
         return Icons.article;
       case BookFormat.rtf:
+        return Icons.article;
+      case BookFormat.hwpx:
         return Icons.article;
       case BookFormat.musicXml:
         return Icons.music_note;

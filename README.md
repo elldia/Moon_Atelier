@@ -9,6 +9,7 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 
 ### 지원 파일 형식
 - EPUB, PDF, TXT, DOCX, RTF (한글 CP949 인코딩 자동 인식 포함)
+- HWPX(한글 2014 이후 버전의 XML 기반 형식) — 옛 바이너리 .hwp 형식은 지원하지 않음
 - MusicXML / MXL (악보 파일, 오선보로 렌더링)
 - 위 형식이 ZIP 압축파일 안에 들어있어도 자동으로 찾아서 열림(파일명이 한글 CP949로 되어 있어도 깨지지 않게 자동 복구)
 
@@ -17,17 +18,17 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 글자 크기·자간·행간·바깥 여백·들여쓰기는 매우작게~매우 크게 5단계 중에서 실제 미리보기를 보며 선택(드래그 슬라이더 아님)
 - 배경색 5종 프리셋(화이트/세피아/그레이/다크/블랙) 및 라이트·다크·시스템 테마
 - 모든 설정은 홈 화면과 읽는 중 어디서든 즉시 변경 가능
-- EPUB·PDF·TXT·RTF·DOCX 전 형식에서 동일한 하단 진행바(클릭 & 드래그로 원하는 위치 이동) 및 진행률 표시 — 기본은 숨김이며 설정에서 켤 수 있음
+- EPUB·PDF·TXT·RTF·DOCX·HWPX 전 형식에서 동일한 하단 진행바(클릭 & 드래그로 원하는 위치 이동) 및 진행률 표시 — 기본은 숨김이며 설정에서 켤 수 있음
 - 100페이지(EPUB은 1000문단) 이상인 책은 처음·끝·±10페이지 이동 버튼이 진행바 옆에 추가로 표시(진행바를 켰을 때만)
 - 스크롤하면 상단·하단 UI가 자동으로 숨겨지고, 화면을 탭하거나 위로 스크롤하면 다시 나타남(단, 본문 검색 중에는 스크롤해도 숨겨지지 않고 검색을 닫아야 다시 숨겨짐)
 - PDF는 마우스 휠과 터치 핀치줌으로 화면 확대·축소 가능
-- 음성으로 듣기(TTS): 시스템에 설치된 목소리 중에서 선택 가능하고 배속을 x1.0~x2.0(0.2 단위)로 조절 — EPUB·PDF·TXT·DOCX·RTF 전 형식 지원
+- 음성으로 듣기(TTS): 시스템에 설치된 목소리 중에서 선택 가능하고 배속을 x1.0~x2.0(0.2 단위)로 조절 — EPUB·PDF·TXT·DOCX·RTF·HWPX 전 형식 지원
 
 ### 문장 저장 및 탐색
 - 텍스트를 드래그해 원하는 색상의 형광펜으로 저장(자주 찾는 글귀 모아보기)
 - 원하는 위치를 북마크로 저장하고 목록에서 바로 이동
 - 책마다 현재 읽은 글자수 / 전체 글자수 · 진행률(%)을 목록에서 확인
-- 본문 내용 검색(EPUB·PDF·TXT·DOCX·RTF): 원하는 단어가 나오는 위치로 바로 이동, 이전/다음 결과 탐색
+- 본문 내용 검색(EPUB·PDF·TXT·DOCX·RTF·HWPX): 원하는 단어가 나오는 위치로 바로 이동, 이전/다음 결과 탐색
 
 ### 서재 관리
 - 폴더 생성, 이동, 삭제로 책 정리
@@ -62,6 +63,7 @@ A glassmorphism-styled web ebook reader built with Flutter.
 
 ### Supported formats
 - EPUB, PDF, TXT, DOCX, RTF (with automatic Korean CP949 encoding detection)
+- HWPX (the XML-based format used by 한글/Hangul Word Processor since 2014) — the older binary .hwp format isn't supported
 - MusicXML / MXL (sheet music, rendered as an actual musical score)
 - Any of the above works even zipped inside a `.zip` — it's found and opened automatically, and a Korean filename encoded as CP949 is recovered instead of showing up as mojibake
 
@@ -70,17 +72,17 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Font size, letter-spacing, line-height, page margin, and paragraph indent are each picked from 5 levels (very small to very large) with a live preview of that level — not a drag slider
 - 5 background presets (white/sepia/gray/dark/black) plus light/dark/system theme
 - Every setting can be changed instantly, from the home screen or while reading
-- The same draggable progress bar and position indicator across EPUB, PDF, TXT, RTF, and DOCX — hidden by default, can be turned on from Settings
+- The same draggable progress bar and position indicator across EPUB, PDF, TXT, RTF, DOCX, and HWPX — hidden by default, can be turned on from Settings
 - Books over 100 pages (1000 paragraphs for EPUB) get extra first/last/±10-page jump buttons next to the progress bar (only shown when it's on)
 - Scrolling auto-hides the top/bottom UI; tap the screen or scroll up to bring it back (this pauses while in-content search is open, resuming once you close it)
 - PDF supports zoom via mouse wheel and touch pinch
-- Text-to-speech: pick from the voices installed on your system and adjust playback speed from x1.0 to x2.0 in 0.2 steps — available across EPUB, PDF, TXT, DOCX, and RTF
+- Text-to-speech: pick from the voices installed on your system and adjust playback speed from x1.0 to x2.0 in 0.2 steps — available across EPUB, PDF, TXT, DOCX, RTF, and HWPX
 
 ### Saving & finding passages
 - Drag-select text to save it as a colored highlight (with a personal quote collection)
 - Bookmark any position and jump back to it from a list
 - Each book's list entry shows current/total character count and overall progress %
-- In-content search across EPUB, PDF, TXT, DOCX, and RTF — jump straight to a match and step through previous/next results
+- In-content search across EPUB, PDF, TXT, DOCX, RTF, and HWPX — jump straight to a match and step through previous/next results
 
 ### Library management
 - Organize books into folders (create, move, delete)

@@ -266,10 +266,10 @@ const _dict = <String, List<String>>{
     '此文件夹为空。',
   ],
   'supported_formats_hint': [
-    'EPUB, PDF, TXT, DOCX, RTF, MusicXML 파일을 열 수 있어요.\nZIP 압축파일 안에 있어도 자동으로 찾아서 열어드려요.',
-    'You can open EPUB, PDF, TXT, DOCX, RTF, and MusicXML files.\nEven zipped inside a .zip, we\'ll find and open it automatically.',
-    'EPUB、PDF、TXT、DOCX、RTF、MusicXMLファイルを開けます。\nZIPファイルの中にあっても自動的に見つけて開きます。',
-    '可以打开EPUB、PDF、TXT、DOCX、RTF、MusicXML文件。\n即使压缩在ZIP文件中,也会自动找到并打开。',
+    'EPUB, PDF, TXT, DOCX, RTF, HWPX, MusicXML 파일을 열 수 있어요(옛 바이너리 .hwp는 지원하지 않음).\nZIP 압축파일 안에 있어도 자동으로 찾아서 열어드려요.',
+    'You can open EPUB, PDF, TXT, DOCX, RTF, HWPX, and MusicXML files (the older binary .hwp isn\'t supported).\nEven zipped inside a .zip, we\'ll find and open it automatically.',
+    'EPUB、PDF、TXT、DOCX、RTF、HWPX、MusicXMLファイルを開けます(旧バイナリ形式の.hwpには対応していません)。\nZIPファイルの中にあっても自動的に見つけて開きます。',
+    '可以打开EPUB、PDF、TXT、DOCX、RTF、HWPX、MusicXML文件(不支持旧版二进制.hwp格式)。\n即使压缩在ZIP文件中,也会自动找到并打开。',
   ],
   'file_count': ['{n}개 파일', '{n} files', '{n}個のファイル', '{n}个文件'],
   'delete_folder': ['폴더 삭제', 'Delete folder', 'フォルダ削除', '删除文件夹'],
@@ -407,6 +407,14 @@ const _dict = <String, List<String>>{
     'Could not find word/document.xml. Please check that this is a valid .docx file.',
     'word/document.xmlが見つかりません。正しい.docxファイルか確認してください。',
     '未找到word/document.xml。请确认这是有效的.docx文件。',
+  ],
+
+  // hwpx extractor
+  'hwpx_missing_sections': [
+    'Contents/section*.xml를 찾을 수 없습니다. 올바른 .hwpx 파일인지 확인해 주세요(옛 바이너리 .hwp 형식은 지원하지 않습니다).',
+    'Could not find Contents/section*.xml. Please check that this is a valid .hwpx file (the older binary .hwp format isn\'t supported).',
+    'Contents/section*.xmlが見つかりません。正しい.hwpxファイルか確認してください(旧バイナリ形式の.hwpには対応していません)。',
+    '未找到Contents/section*.xml。请确认这是有效的.hwpx文件(不支持旧版二进制.hwp格式)。',
   ],
 
   // File source dialog

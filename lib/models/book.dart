@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-enum BookFormat { epub, pdf, txt, docx, rtf, musicXml, note, comic }
+enum BookFormat { epub, pdf, txt, docx, rtf, hwpx, musicXml, note, comic }
 
 /// Which top-level library a [BookFormat] belongs to — the e-book reader or
 /// the comic viewer. Drives which entry screen a book shows up under and
@@ -28,7 +28,7 @@ class Book {
   /// Last reading position, meaning depends on [format]:
   /// - epub: an EPUB CFI string
   /// - pdf: 1-based page number
-  /// - txt / docx / rtf: vertical scroll offset in pixels
+  /// - txt / docx / rtf / hwpx: vertical scroll offset in pixels
   final Object? position;
 
   /// How far through the book the reader has gotten, 0.0-1.0. Reported by
@@ -88,6 +88,8 @@ class Book {
         return BookFormat.docx;
       case 'rtf':
         return BookFormat.rtf;
+      case 'hwpx':
+        return BookFormat.hwpx;
       case 'musicxml':
       case 'mxl':
         return BookFormat.musicXml;
