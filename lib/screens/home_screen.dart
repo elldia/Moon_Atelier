@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/library_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/book.dart';
@@ -18,9 +19,32 @@ final _windowsDownloadUrl = Uri.parse(
 /// The app's start screen: a fork between the two independent tools it
 /// bundles — the e-book reader and the comic viewer — so each gets its own
 /// uncluttered library/menu instead of mixing both kinds of files (and
-/// their format-specific actions) into one screen.
-class HomeScreen extends StatelessWidget {
+/// their format-specific actions) into one screen. Also surfaces a
+/// "이어보기" (continue reading) shortcut to the single most recently
+/// opened book/comic, if there is one, so a returning user doesn't have to
+/// go through the library list just to pick up where they left off.
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  /// Pushes the given library, optionally auto-opening one book in it, then
+  /// refreshes on return — opening a book (from here or from within the
+  /// library screen itself) can change its lastOpenedAt/progress, which the
+  /// continue-reading card needs to reflect without waiting on some
+  /// unrelated rebuild.
+  Future<void> _openLibrary(BookKind kind, {String? initialOpenBookId}) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            LibraryScreen(kind: kind, initialOpenBookId: initialOpenBookId),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,39 +52,45 @@ class HomeScreen extends StatelessWidget {
       animation: ReadingSettingsController.instance,
       builder: (context, _) {
         final appName = ReadingSettingsController.instance.value.appName;
+        final recentlyOpened = LibraryStore.loadAll()
+            .where((b) => b.lastOpenedAt != null)
+            .toList();
+        final continueBook = recentlyOpened.isEmpty
+            ? null
+            : recentlyOpened.first;
         return Scaffold(
           appBar: glassAppBar(context, title: Text(appName.label)),
           body: SafeArea(
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (continueBook != null) ...[
+                        _ContinueReadingCard(
+                          book: continueBook,
+                          onTap: () => _openLibrary(
+                            continueBook.format.kind,
+                            initialOpenBookId: continueBook.id,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       _HomeEntryCard(
                         icon: Icons.menu_book,
                         title: tr('home_ebook_title'),
                         description: tr('home_ebook_desc'),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const LibraryScreen(kind: BookKind.ebook),
-                          ),
-                        ),
+                        onTap: () => _openLibrary(BookKind.ebook),
                       ),
                       const SizedBox(height: 20),
                       _HomeEntryCard(
                         icon: Icons.auto_stories,
                         title: tr('home_comic_title'),
                         description: tr('home_comic_desc'),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const LibraryScreen(kind: BookKind.comic),
-                          ),
-                        ),
+                        onTap: () => _openLibrary(BookKind.comic),
                       ),
                       if (kIsWeb) ...[
                         const SizedBox(height: 16),
@@ -117,13 +147,73 @@ class _HomeEntryCard extends StatelessWidget {
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(description, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "이어보기" shortcut card — same shape as [_HomeEntryCard] but shows
+/// the specific book's title/progress instead of a static description.
+class _ContinueReadingCard extends StatelessWidget {
+  final Book book;
+  final VoidCallback onTap;
+
+  const _ContinueReadingCard({required this.book, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = book.progress;
+    return GlassCard(
+      opacity: 0.55,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Icon(
+            book.format.kind == BookKind.comic
+                ? Icons.auto_stories
+                : Icons.menu_book,
+            size: 32,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('continue_reading_section'),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  book.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (progress != null) ...[
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           const Icon(Icons.chevron_right),
         ],
       ),

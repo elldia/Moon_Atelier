@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/bookmark_store.dart';
 import '../data/highlight_store.dart';
@@ -64,6 +65,12 @@ class _SavedItemsScreenState extends State<SavedItemsScreen>
   Future<void> _deleteHighlight(Highlight h) async {
     await HighlightStore.delete(h.id);
     _reload();
+  }
+
+  Future<void> _shareHighlight(Highlight h) async {
+    await SharePlus.instance.share(
+      ShareParams(text: '"${h.text}"\n\n— ${widget.bookTitle}'),
+    );
   }
 
   @override
@@ -151,10 +158,20 @@ class _SavedItemsScreenState extends State<SavedItemsScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                               subtitle: Text(_formatDate(h.createdAt)),
-                              trailing: IconButton(
-                                tooltip: tr('delete'),
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _deleteHighlight(h),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: tr('share_quote'),
+                                    icon: const Icon(Icons.share_outlined),
+                                    onPressed: () => _shareHighlight(h),
+                                  ),
+                                  IconButton(
+                                    tooltip: tr('delete'),
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: () => _deleteHighlight(h),
+                                  ),
+                                ],
                               ),
                             ),
                           );

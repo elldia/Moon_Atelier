@@ -45,6 +45,7 @@ const _dict = <String, List<String>>{
     'CBZ・ZIP形式のコミックをページ単位で読みます',
     '按页浏览CBZ、ZIP格式的漫画',
   ],
+  'continue_reading_section': ['이어보기', 'Continue Reading', '続きから読む', '继续阅读'],
   'home_windows_download': [
     'Windows용 프로그램 내려받기',
     'Download the Windows app',
@@ -400,6 +401,7 @@ const _dict = <String, List<String>>{
     '保存した引用がありません。\n読書中にテキストをドラッグして選択してみてください。',
     '尚未收藏任何语句。\n阅读时试着拖动选中文本吧。',
   ],
+  'share_quote': ['글귀 공유', 'Share Quote', '引用を共有', '分享语句'],
 
   // docx extractor
   'docx_missing_document_xml': [

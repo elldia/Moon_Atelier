@@ -25,7 +25,8 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 음성으로 듣기(TTS): 시스템에 설치된 목소리 중에서 선택 가능하고 배속을 x1.0~x2.0(0.2 단위)로 조절 — EPUB·PDF·TXT·DOCX·RTF·HWPX 전 형식 지원
 
 ### 문장 저장 및 탐색
-- 텍스트를 드래그해 원하는 색상의 형광펜으로 저장(자주 찾는 글귀 모아보기)
+- 텍스트를 드래그해 원하는 색상의 형광펜으로 저장(자주 찾는 글귀 모아보기) — TXT·DOCX·RTF·HWPX에서 지원(EPUB·PDF는 아직 지원하지 않음: EPUB 렌더링 라이브러리에 텍스트 선택 기능이 없고, PDF는 페이지를 이미지로만 그려서 텍스트 레이어가 없음)
+- 저장한 글귀는 목록에서 바로 공유(다른 앱으로 보내기) 가능
 - 원하는 위치를 북마크로 저장하고 목록에서 바로 이동
 - 책마다 현재 읽은 글자수 / 전체 글자수 · 진행률(%)을 목록에서 확인
 - 본문 내용 검색(EPUB·PDF·TXT·DOCX·RTF·HWPX): 원하는 단어가 나오는 위치로 바로 이동, 이전/다음 결과 탐색
@@ -39,6 +40,7 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 서재 전체(책 원본 파일, 폴더, 북마크, 형광펜)를 zip 파일 하나로 내려받기/메일로 공유 가능, 그 백업 파일을 다시 불러와 서재에 더하는 복원 기능도 지원(기존 항목은 지워지지 않음)
 
 ### 인터페이스
+- 홈 화면에 가장 최근에 읽던 책/만화로 바로 이어보기 카드 표시(진행률 포함, 한 번도 안 읽었으면 표시 안 됨)
 - 글래스모피즘(반투명 블러) 디자인, 320px 이하 좁은 화면까지 대응
 - 한국어 / English / 日本語 / 中文 4개 언어로 인터페이스 전환 가능
 - 앱 이름은 모든 언어에서 기본적으로 "Moon Atelier"로 표시되며, 한국어 설정에서는 설정 화면에서 "달빛서재"로 바꿀 수도 있음
@@ -80,7 +82,8 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Text-to-speech: pick from the voices installed on your system and adjust playback speed from x1.0 to x2.0 in 0.2 steps — available across EPUB, PDF, TXT, DOCX, RTF, and HWPX
 
 ### Saving & finding passages
-- Drag-select text to save it as a colored highlight (with a personal quote collection)
+- Drag-select text to save it as a colored highlight (with a personal quote collection) — supported in TXT, DOCX, RTF, and HWPX (not yet in EPUB or PDF: the EPUB rendering library has no text-selection API, and PDF pages are drawn as images with no text layer)
+- Share a saved quote straight from the list
 - Bookmark any position and jump back to it from a list
 - Each book's list entry shows current/total character count and overall progress %
 - In-content search across EPUB, PDF, TXT, DOCX, RTF, and HWPX — jump straight to a match and step through previous/next results
@@ -94,6 +97,7 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Download or email the whole library (book files, folders, bookmarks, highlights) as one zip, and restore that backup back in later — nothing already in the library gets removed by a restore
 
 ### Interface
+- The home screen shows a "continue reading" card for the most recently opened book/comic, progress included (hidden until you've actually opened something)
 - Glassmorphism (translucent blur) design that holds up down to 320px width
 - Switch the interface language between 한국어 / English / 日本語 / 中文
 - The app defaults to the "Moon Atelier" display name in every language; in Korean, Settings also lets you switch it to "달빛서재"

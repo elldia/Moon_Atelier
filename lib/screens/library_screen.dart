@@ -57,7 +57,12 @@ String _sortLabel(BookSort s) => tr('sort_${s.name}');
 class LibraryScreen extends StatefulWidget {
   final BookKind kind;
 
-  const LibraryScreen({super.key, required this.kind});
+  /// If set, that book is opened automatically once — used by the home
+  /// screen's "이어보기" (continue reading) card so tapping it jumps
+  /// straight into the book instead of leaving the user on the list.
+  final String? initialOpenBookId;
+
+  const LibraryScreen({super.key, required this.kind, this.initialOpenBookId});
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -95,6 +100,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
         .where((b) => b.format.kind == widget.kind)
         .toList();
     _folders = FolderStore.loadAll();
+    final openId = widget.initialOpenBookId;
+    if (openId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        for (final book in _books) {
+          if (book.id == openId) {
+            _openBook(book);
+            break;
+          }
+        }
+      });
+      // The "이어보기" launch already knows the user isn't new — skip the
+      // first-run overlay so it doesn't flash behind the book it's about
+      // to open.
+      return;
+    }
     if (_isComic) return;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => maybeShowOnboardingOverlay(context, [
