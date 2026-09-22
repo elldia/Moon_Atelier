@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/reading_settings.dart';
@@ -28,12 +30,27 @@ class ReadingSettingsStore {
     final raw = _b.get(_key) as Map?;
     if (raw == null) return ReadingSettings.defaults;
     try {
-      return ReadingSettings.fromMap(raw);
+      var settings = ReadingSettings.fromMap(raw);
+      // One-time migration: every save from before AppBrand had a settings
+      // UI *forced* the Korean brand whenever locale was Korean — there was
+      // no way to have chosen otherwise — so the first load after this
+      // change switches those installs to the new international default.
+      // The flag means later loads leave a real (possibly Korean) choice
+      // made through Settings alone.
+      if (raw['appNameMigrated'] != true) {
+        if (settings.appName == AppBrand.moonlightLibrary) {
+          settings = settings.copyWith(appName: AppBrand.moonAtelier);
+        }
+        unawaited(save(settings));
+      }
+      return settings;
     } catch (_) {
       return ReadingSettings.defaults;
     }
   }
 
-  static Future<void> save(ReadingSettings settings) =>
-      _b.put(_key, settings.toMap());
+  static Future<void> save(ReadingSettings settings) {
+    final map = settings.toMap()..['appNameMigrated'] = true;
+    return _b.put(_key, map);
+  }
 }
