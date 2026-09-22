@@ -1,6 +1,7 @@
 # Moon Atelier (달빛서재)
 
 **Live:** https://elldia.github.io/Moon_Atelier/
+**Windows download (offline fallback):** https://github.com/elldia/Moon_Atelier/releases
 
 ## 한국어
 

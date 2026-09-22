@@ -1,10 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/book.dart';
 import '../widgets/glass.dart';
 import 'library_screen.dart';
+
+/// Where the web build points users who want an offline fallback — the
+/// repo's GitHub Releases page, so the link keeps working as new Windows
+/// builds get published there without this app needing an update.
+final _windowsDownloadUrl = Uri.parse(
+  'https://github.com/elldia/Moon_Atelier/releases',
+);
 
 /// The app's start screen: a fork between the two independent tools it
 /// bundles — the e-book reader and the comic viewer — so each gets its own
@@ -53,6 +62,20 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (kIsWeb) ...[
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => launchUrl(
+                            _windowsDownloadUrl,
+                            webOnlyWindowName: '_blank',
+                          ),
+                          child: Text(
+                            tr('home_windows_download'),
+                            style: Theme.of(context).textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

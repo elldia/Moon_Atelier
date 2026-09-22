@@ -45,6 +45,12 @@ const _dict = <String, List<String>>{
     'CBZ・ZIP形式のコミックをページ単位で読みます',
     '按页浏览CBZ、ZIP格式的漫画',
   ],
+  'home_windows_download': [
+    '웹이 안 될 때는 Windows용 프로그램을 받아 이용할 수 있어요',
+    'No web access? Get the Windows app instead',
+    'Webが使えないときはWindows版アプリをご利用ください',
+    '无法使用网页版时,可下载 Windows 版程序使用',
+  ],
   'comic_library_title': ['만화 서재', 'Comic Library', 'コミック書斎', '漫画书房'],
   'supported_formats_hint_comic': [
     'CBZ, ZIP(이미지) 만화 파일을 열 수 있어요.',
@@ -65,6 +71,14 @@ const _dict = <String, List<String>>{
   'comic_quality_sharp': ['선명하게', 'Sharp', 'シャープ', '锐利'],
   'comic_quality_medium': ['평균', 'Medium', '標準', '中等'],
   'comic_quality_smooth': ['부드럽게', 'Smooth', 'なめらか', '柔和'],
+  'comic_tap_zone_section': ['탭으로 넘기기', 'Tap to Turn', 'タップでページ送り', '轻触翻页'],
+  'comic_tap_zone_desc': [
+    '화면 가장자리를 탭하면 이전/다음 페이지로 넘어갑니다. 가운데를 탭하면 화면 UI가 보이거나 숨겨집니다.',
+    'Tap an edge of the screen to go to the previous/next page. Tapping the middle shows or hides the UI.',
+    '画面の端をタップすると前/次のページに移動します。中央をタップするとUIの表示/非表示が切り替わります。',
+    '轻触屏幕边缘可跳转到上一页/下一页,轻触中间可显示或隐藏界面。',
+  ],
+  'comic_tap_zone_size': ['탭 영역 크기', 'Tap Zone Size', 'タップ範囲', '触控区域大小'],
   'comic_animate_section': ['페이지 전환 효과', 'Page Turn Animation', 'ページ切り替え効果', '翻页动画'],
   'comic_animate_title': [
     '넘길 때 애니메이션',

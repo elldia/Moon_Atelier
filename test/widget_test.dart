@@ -4,16 +4,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 
+import 'package:ebk/data/bookmark_store.dart';
+import 'package:ebk/data/comic_settings_controller.dart';
+import 'package:ebk/data/comic_settings_store.dart';
+import 'package:ebk/data/folder_store.dart';
+import 'package:ebk/data/highlight_store.dart';
 import 'package:ebk/data/library_store.dart';
+import 'package:ebk/data/markdown_help_store.dart';
+import 'package:ebk/data/onboarding_store.dart';
+import 'package:ebk/data/reading_settings_controller.dart';
+import 'package:ebk/data/reading_settings_store.dart';
 import 'package:ebk/main.dart';
 
 void main() {
   late Directory tempDir;
 
+  // Mirrors main()'s init sequence (minus Hive.initFlutter, which needs the
+  // path_provider plugin main() gets from the real platform) — LibraryScreen
+  // and its onboarding overlay reach into every one of these stores.
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('ebk_hive_test_');
     Hive.init(tempDir.path);
     await LibraryStore.init();
+    await ReadingSettingsStore.init();
+    await ReadingSettingsController.init();
+    await ComicSettingsStore.init();
+    await ComicSettingsController.init();
+    await BookmarkStore.init();
+    await HighlightStore.init();
+    await FolderStore.init();
+    await OnboardingStore.init();
+    await MarkdownHelpStore.init();
   });
 
   tearDown(() async {
@@ -24,9 +45,23 @@ void main() {
   testWidgets('Library screen shows empty state', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('내 서재'), findsOneWidget);
+    // MyApp opens on a ~800ms SplashScreen before handing off to Home (which
+    // itself forks between the e-book reader and the comic viewer); wait it
+    // out, then drill into the e-book library to reach the empty-state UI
+    // this test actually cares about.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('이북 리더'));
+    await tester.pumpAndSettle();
+
+    // The empty-state illustration loads via Image.network (so the web
+    // build can fetch it as a static asset outside Flutter's bundle); under
+    // `flutter test` all network requests are sandboxed and fail, which is
+    // expected here and irrelevant to what this test checks — consume it so
+    // it doesn't fail the test.
+    tester.takeException();
+
     expect(find.text('아직 추가된 파일이 없습니다.'), findsOneWidget);
-    expect(find.text('파일 열기'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 }

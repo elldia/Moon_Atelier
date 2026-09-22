@@ -276,6 +276,27 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     _jumpToPage(_page + (delta > 0 ? 1 : -1));
   }
 
+  /// Tap-to-turn-page: an edge strip of the content area (sized by
+  /// [ComicSettings.tapZoneFraction] along [ComicSettings.tapZoneDirection])
+  /// turns to the previous/next page; the remaining middle strip toggles the
+  /// reading UI, as a plain tap always used to.
+  void _handleContentTap(TapUpDetails details, Size size, ComicSettings settings) {
+    final isHorizontal = settings.tapZoneDirection == ComicDirection.horizontal;
+    final extent = isHorizontal ? size.width : size.height;
+    if (extent <= 0) return;
+    final offset = isHorizontal
+        ? details.localPosition.dx
+        : details.localPosition.dy;
+    final fraction = settings.tapZoneFraction;
+    if (offset < extent * fraction) {
+      _jumpToPage(_page - 1);
+    } else if (offset > extent * (1 - fraction)) {
+      _jumpToPage(_page + 1);
+    } else {
+      setState(() => _uiVisible = !_uiVisible);
+    }
+  }
+
   void _handleArrowKey(LogicalKeyboardKey key) {
     if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.arrowDown) {
@@ -502,11 +523,21 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
             },
             child: Listener(
               onPointerSignal: _handlePointerSignal,
-              child: GestureDetector(
-                onTap: () => setState(() => _uiVisible = !_uiVisible),
-                child: comicSettings.viewMode == ComicViewMode.continuousScroll
-                    ? _buildContinuousScroll(comicSettings.quality, context)
-                    : _buildPagedView(comicSettings.quality),
+              child: LayoutBuilder(
+                builder: (context, constraints) => GestureDetector(
+                  onTapUp: (details) => _handleContentTap(
+                    details,
+                    constraints.biggest,
+                    comicSettings,
+                  ),
+                  // At the widest tap-zone setting the edge zones can cover
+                  // the whole screen, leaving no middle strip to tap for the
+                  // UI toggle — long-press always reaches it as a fallback.
+                  onLongPress: () => setState(() => _uiVisible = !_uiVisible),
+                  child: comicSettings.viewMode == ComicViewMode.continuousScroll
+                      ? _buildContinuousScroll(comicSettings.quality, context)
+                      : _buildPagedView(comicSettings.quality),
+                ),
               ),
             ),
           ),

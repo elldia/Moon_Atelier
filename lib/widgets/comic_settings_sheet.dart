@@ -98,6 +98,50 @@ class _ComicSettingsSheet extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
+                    _SectionLabel(tr('comic_tap_zone_section')),
+                    Text(
+                      tr('comic_tap_zone_desc'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final dir in ComicDirection.values)
+                          ChoiceChip(
+                            label: Text(tr('comic_dir_${dir.name}')),
+                            selected: settings.tapZoneDirection == dir,
+                            onSelected: (_) =>
+                                _set((s) => s.copyWith(tapZoneDirection: dir)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: settings.tapZoneFraction,
+                            min: 0.25,
+                            max: 0.5,
+                            divisions: 5,
+                            label:
+                                '${(settings.tapZoneFraction * 100).round()}%',
+                            onChanged: (v) =>
+                                _set((s) => s.copyWith(tapZoneFraction: v)),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 44,
+                          child: Text(
+                            '${(settings.tapZoneFraction * 100).round()}%',
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     _SectionLabel(tr('comic_animate_section')),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,

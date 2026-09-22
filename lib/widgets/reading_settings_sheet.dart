@@ -160,6 +160,15 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                           ),
                         ),
                       ),
+                      if (_draft.locale == AppLocale.ko) ...[
+                        const SizedBox(height: 16),
+                        _SectionLabel(tr('app_name_section')),
+                        _AppNameSelector(
+                          value: _draft.appName,
+                          onChanged: (v) =>
+                              _set((s) => s.copyWith(appName: v)),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       _SectionLabel(tr('display_mode')),
                       _ThemeModeSelector(
@@ -424,6 +433,28 @@ class _LocaleSelector extends StatelessWidget {
             label: Text(locale.label),
             selected: value == locale,
             onSelected: (_) => onChanged(locale),
+          ),
+      ],
+    );
+  }
+}
+
+class _AppNameSelector extends StatelessWidget {
+  final AppBrand value;
+  final ValueChanged<AppBrand> onChanged;
+  const _AppNameSelector({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final brand in AppBrand.values)
+          ChoiceChip(
+            label: Text(brand.label),
+            selected: value == brand,
+            onSelected: (_) => onChanged(brand),
           ),
       ],
     );
