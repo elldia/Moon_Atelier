@@ -39,9 +39,19 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 ### 인터페이스
 - 글래스모피즘(반투명 블러) 디자인, 320px 이하 좁은 화면까지 대응
 - 한국어 / English / 日本語 / 中文 4개 언어로 인터페이스 전환 가능
-- 앱 이름은 인터페이스 언어에 따라 자동 전환(한국어 → "달빛서재", 그 외 → "Moon Atelier")
+- 앱 이름은 모든 언어에서 기본적으로 "Moon Atelier"로 표시되며, 한국어 설정에서는 설정 화면에서 "달빛서재"로 바꿀 수도 있음
 - 첫 실행 시 실제 화면 위에 반투명 오버레이로 버튼마다 설명을 보여주는 안내, "다음에 다시 보기" 또는 "다신 안 보기" 중 선택 가능. 새로고침 시 0.8초 스플래시 화면
 - 개발자에게 커피 한 잔 후원 버튼([Buy Me a Coffee](https://buymeacoffee.com/elldia1222w)로 연결)
+
+### 만화 뷰어
+- CBZ, ZIP 만화책을 페이지 단위로 감상(전자책과는 별도의 만화 서재)
+- 보기 방식: 한 장씩 / 두 장씩(스프레드) / 이어보기(세로 스크롤, 웹툰 방식)
+- 한 장·두 장 보기에서는 넘기는 방향(가로/세로)도 선택 가능(이어보기는 항상 세로 스크롤)
+- 화면 가장자리를 탭하면 이전/다음 페이지로 넘어가고 가운데를 탭하면 화면 UI가 보이거나 숨겨짐 — 탭 영역의 방향과 크기(화면의 25~50%)를 설정에서 조절 가능(길게 누르면 항상 UI 전환)
+- 마우스 휠·트랙패드 스크롤과 방향키(←→ / ↑↓)로도 페이지 이동 가능
+- 이미지 화질(선명하게/평균/부드럽게) 선택 및 페이지 전환 애니메이션 켜기/끄기
+- 북마크 추가 및 목록에서 바로 이동, 상단에 진행률(현재 페이지/전체 · %) 표시, 100페이지 이상은 ±10페이지 이동 버튼 추가
+- 보기 설정은 화면 중앙에 뜨는 별도 창(화면의 80% 크기)에서 즉시 적용
 
 ## English
 
@@ -79,9 +89,19 @@ A glassmorphism-styled web ebook reader built with Flutter.
 ### Interface
 - Glassmorphism (translucent blur) design that holds up down to 320px width
 - Switch the interface language between 한국어 / English / 日本語 / 中文
-- The app's display name follows the interface language automatically (Korean → "달빛서재", everything else → "Moon Atelier")
+- The app defaults to the "Moon Atelier" display name in every language; in Korean, Settings also lets you switch it to "달빛서재"
 - A first-run guide overlays the real screen with a translucent scrim and spotlights each button with its own explanation, with a choice between "show again next time" or "never show again". A 0.8s splash screen appears on load/refresh
 - A "buy the developer a coffee" button, linking out to [Buy Me a Coffee](https://buymeacoffee.com/elldia1222w)
+
+### Comic Viewer
+- Read CBZ/ZIP comic archives page by page, in its own library separate from the e-book reader
+- View modes: single page, two-page spread, or continuous (vertical, webtoon-style) scroll
+- Single/two-page modes also let you pick the page-turn direction (horizontal/vertical); continuous scroll is always vertical
+- Tap an edge of the screen to turn to the previous/next page, or the middle to show/hide the UI — both the tap zones' direction and size (25-50% of the screen) are configurable from Settings (long-press always toggles the UI as a fallback)
+- Also supports mouse-wheel/trackpad scrolling and arrow keys (←→ / ↑↓) for page turns
+- Choice of image quality (sharp/medium/smooth) and a toggle for the page-turn animation
+- Add bookmarks and jump back to them from a list; a progress indicator (page/total, %) up top, with extra ±10-page jump buttons past 100 pages
+- Settings open in their own dialog, centered over the viewer at 80% of the screen size, applying instantly
 
 ## Getting started
 
