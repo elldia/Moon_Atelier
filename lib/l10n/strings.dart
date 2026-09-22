@@ -770,6 +770,42 @@ const _dict = <String, List<String>>{
     'バックアップに失敗しました: {error}',
     '备份失败: {error}',
   ],
+  'backup_restore': [
+    '백업 파일 불러오기',
+    'Restore from Backup',
+    'バックアップから復元',
+    '从备份恢复',
+  ],
+  'backup_restore_desc': [
+    '이전에 내려받은 백업 파일을 선택하면 지금 서재에 더해집니다(기존 항목은 지워지지 않아요).',
+    'Pick a previously downloaded backup file to add it into your current library (nothing already here gets removed).',
+    '以前ダウンロードしたバックアップファイルを選ぶと、今の書斎に追加されます(既存の項目は削除されません)。',
+    '选择之前下载的备份文件后会添加到当前书房中(不会删除已有内容)。',
+  ],
+  'backup_restore_done': [
+    '책 {books}권, 폴더 {folders}개, 북마크 {bookmarks}개, 형광펜 {highlights}개를 불러왔어요.',
+    'Restored {books} book(s), {folders} folder(s), {bookmarks} bookmark(s), and {highlights} highlight(s).',
+    '本{books}冊、フォルダ{folders}個、ブックマーク{bookmarks}個、ハイライト{highlights}個を復元しました。',
+    '已恢复{books}本书、{folders}个文件夹、{bookmarks}个书签、{highlights}个高亮。',
+  ],
+  'backup_restore_failed': [
+    '백업 파일을 불러오지 못했습니다: {error}',
+    'Could not restore the backup file: {error}',
+    'バックアップファイルを復元できませんでした: {error}',
+    '无法恢复备份文件: {error}',
+  ],
+  'backup_invalid': [
+    '올바른 백업 파일이 아닙니다.',
+    'This isn\'t a valid backup file.',
+    '正しいバックアップファイルではありません。',
+    '不是有效的备份文件。',
+  ],
+  'backup_unsupported_version': [
+    '지원하지 않는 백업 버전입니다. 최신 버전의 앱에서 만든 백업 파일인지 확인해 주세요.',
+    'This backup was made with an unsupported version. Please check it came from a current version of the app.',
+    'サポートされていないバックアップのバージョンです。最新バージョンのアプリで作成されたか確認してください。',
+    '不支持的备份版本。请确认该备份文件来自最新版本的应用。',
+  ],
 };
 
 String fontLabel(ReadingFont f) => tr('font_${f.name}');

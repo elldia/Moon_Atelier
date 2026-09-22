@@ -36,6 +36,7 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 - 검색 및 다중 선택 삭제(휴지통), 선택 모드에서 전체 선택/해제 한 번에 가능
 - 파일 등록은 로컬 파일 선택과 클립보드 붙여넣기를 지원(원드라이브·Dropbox 등 클라우드 연동은 준비 중)
 - 책 이름 바꾸기, 형식 아이콘 표시 여부 설정
+- 서재 전체(책 원본 파일, 폴더, 북마크, 형광펜)를 zip 파일 하나로 내려받기/메일로 공유 가능, 그 백업 파일을 다시 불러와 서재에 더하는 복원 기능도 지원(기존 항목은 지워지지 않음)
 
 ### 인터페이스
 - 글래스모피즘(반투명 블러) 디자인, 320px 이하 좁은 화면까지 대응
@@ -90,6 +91,7 @@ A glassmorphism-styled web ebook reader built with Flutter.
 - Search and multi-select delete (trash), with a select-all/deselect-all toggle in selection mode
 - Add files from local storage or clipboard (cloud sources like OneDrive/Dropbox are coming soon)
 - Rename books, toggle the per-book format icon on/off
+- Download or email the whole library (book files, folders, bookmarks, highlights) as one zip, and restore that backup back in later — nothing already in the library gets removed by a restore
 
 ### Interface
 - Glassmorphism (translucent blur) design that holds up down to 320px width

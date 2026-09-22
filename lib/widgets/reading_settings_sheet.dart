@@ -6,22 +6,32 @@ import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/reading_settings.dart';
 import '../utils/backup_exporter.dart';
+import '../utils/backup_importer.dart';
+import '../utils/file_pick_watchdog.dart';
 import '../utils/tts_reader.dart';
 import 'glass.dart';
 
 /// Opens the shared reading-preferences dialog. Safe to call from the
 /// library screen or from any viewer while reading. Changes are staged
 /// locally and only take effect (and persist) once '적용' is pressed —
-/// '취소' or tapping outside discards them.
-Future<void> showReadingSettingsSheet(BuildContext context) {
+/// '취소' or tapping outside discards them. [onLibraryRestored], if given,
+/// fires right after a backup restore succeeds, so a caller showing a book
+/// list (the library screen) can reload it — the restore itself always
+/// happens immediately, independent of '적용'/'취소'.
+Future<void> showReadingSettingsSheet(
+  BuildContext context, {
+  VoidCallback? onLibraryRestored,
+}) {
   return showDialog(
     context: context,
-    builder: (context) => const _ReadingSettingsDialog(),
+    builder: (context) =>
+        _ReadingSettingsDialog(onLibraryRestored: onLibraryRestored),
   );
 }
 
 class _ReadingSettingsDialog extends StatefulWidget {
-  const _ReadingSettingsDialog();
+  final VoidCallback? onLibraryRestored;
+  const _ReadingSettingsDialog({this.onLibraryRestored});
 
   @override
   State<_ReadingSettingsDialog> createState() => _ReadingSettingsDialogState();
@@ -31,6 +41,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   late ReadingSettings _draft = ReadingSettingsController.instance.value;
   bool _backingUp = false;
   bool _emailing = false;
+  bool _restoring = false;
 
   @override
   void initState() {
@@ -102,6 +113,37 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
       );
     } finally {
       if (mounted) setState(() => _emailing = false);
+    }
+  }
+
+  Future<void> _restoreBackup() async {
+    setState(() => _restoring = true);
+    try {
+      final file = await pickFileWithWatchdog(allowedExtensions: ['zip']);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      final summary = await BackupImporter.restore(bytes);
+      if (!mounted) return;
+      widget.onLibraryRestored?.call();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            tr('backup_restore_done', {
+              'books': '${summary.books}',
+              'folders': '${summary.folders}',
+              'bookmarks': '${summary.bookmarks}',
+              'highlights': '${summary.highlights}',
+            }),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('backup_restore_failed', {'error': '$e'}))),
+      );
+    } finally {
+      if (mounted) setState(() => _restoring = false);
     }
   }
 
@@ -349,6 +391,31 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       Text(
                         tr('backup_share_email_mobile_only'),
                         style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        tr('backup_restore_desc'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _restoring ? null : _restoreBackup,
+                          icon: _restoring
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.unarchive_outlined),
+                          label: Text(
+                            tr('backup_restore'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
                     ],
                   ),

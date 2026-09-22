@@ -147,6 +147,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  /// Reloads the book/folder lists straight from storage — used after a
+  /// backup restore adds books/folders behind this screen's back (via the
+  /// settings dialog, which doesn't otherwise touch this screen's state).
+  void _reloadFromStores() {
+    if (!mounted) return;
+    setState(() {
+      _books = LibraryStore.loadAll()
+          .where((b) => b.format.kind == widget.kind)
+          .toList();
+      _folders = FolderStore.loadAll();
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -1230,7 +1243,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
             if (v == 'settings') {
               _isComic
                   ? showComicSettingsSheet(context)
-                  : showReadingSettingsSheet(context);
+                  : showReadingSettingsSheet(
+                      context,
+                      onLibraryRestored: _reloadFromStores,
+                    );
             }
           },
           itemBuilder: (context) => [
@@ -1271,7 +1287,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         icon: const Icon(Icons.tune),
         onPressed: () => _isComic
             ? showComicSettingsSheet(context)
-            : showReadingSettingsSheet(context),
+            : showReadingSettingsSheet(
+                context,
+                onLibraryRestored: _reloadFromStores,
+              ),
       ),
     ];
   }
