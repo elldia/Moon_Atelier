@@ -14,11 +14,11 @@ Flutter로 만든 글래스모피즘 스타일의 웹 전자책 리더입니다.
 
 ### 읽기 경험
 - 글꼴 선택: 시스템 기본, Noto Sans KR, Pretendard, 마루부리, Noto Serif KR, 나눔고딕, 나눔명조, 고운바탕, 고운돋움, IBM 플렉스 산스 — 각 버튼이 실제 그 글꼴·굵기로 미리보기되어 고르기 전에 바로 확인 가능
-- 글자 굵기, 크기, 자간, 행간, 바깥 여백, 들여쓰기까지 세밀하게 조절 가능
+- 글자 크기·자간·행간·바깥 여백·들여쓰기는 매우작게~매우 크게 5단계 중에서 실제 미리보기를 보며 선택(드래그 슬라이더 아님)
 - 배경색 5종 프리셋(화이트/세피아/그레이/다크/블랙) 및 라이트·다크·시스템 테마
 - 모든 설정은 홈 화면과 읽는 중 어디서든 즉시 변경 가능
-- EPUB·PDF·TXT·RTF·DOCX 전 형식에서 동일한 하단 진행바(클릭 & 드래그로 원하는 위치 이동) 및 진행률 표시
-- 100페이지(EPUB은 1000문단) 이상인 책은 처음·끝·±10페이지 이동 버튼이 진행바 옆에 추가로 표시
+- EPUB·PDF·TXT·RTF·DOCX 전 형식에서 동일한 하단 진행바(클릭 & 드래그로 원하는 위치 이동) 및 진행률 표시 — 기본은 숨김이며 설정에서 켤 수 있음
+- 100페이지(EPUB은 1000문단) 이상인 책은 처음·끝·±10페이지 이동 버튼이 진행바 옆에 추가로 표시(진행바를 켰을 때만)
 - 스크롤하면 상단·하단 UI가 자동으로 숨겨지고, 화면을 탭하거나 위로 스크롤하면 다시 나타남(단, 본문 검색 중에는 스크롤해도 숨겨지지 않고 검색을 닫아야 다시 숨겨짐)
 - PDF는 마우스 휠과 터치 핀치줌으로 화면 확대·축소 가능
 - 음성으로 듣기(TTS): 시스템에 설치된 목소리 중에서 선택 가능하고 배속을 x1.0~x2.0(0.2 단위)로 조절 — EPUB·PDF·TXT·DOCX·RTF 전 형식 지원
@@ -66,11 +66,11 @@ A glassmorphism-styled web ebook reader built with Flutter.
 
 ### Reading experience
 - Font choice: system default, Noto Sans KR, Pretendard, MaruBuri, Noto Serif KR, Nanum Gothic, Nanum Myeongjo, Gowun Batang, Gowun Dodum, IBM Plex Sans KR — each option is a live preview rendered in its own font and weight, not just a label
-- Fine-grained control over weight, size, letter-spacing, line-height, page margin, and paragraph indent
+- Font size, letter-spacing, line-height, page margin, and paragraph indent are each picked from 5 levels (very small to very large) with a live preview of that level — not a drag slider
 - 5 background presets (white/sepia/gray/dark/black) plus light/dark/system theme
 - Every setting can be changed instantly, from the home screen or while reading
-- The same draggable progress bar and position indicator across EPUB, PDF, TXT, RTF, and DOCX
-- Books over 100 pages (1000 paragraphs for EPUB) get extra first/last/±10-page jump buttons next to the progress bar
+- The same draggable progress bar and position indicator across EPUB, PDF, TXT, RTF, and DOCX — hidden by default, can be turned on from Settings
+- Books over 100 pages (1000 paragraphs for EPUB) get extra first/last/±10-page jump buttons next to the progress bar (only shown when it's on)
 - Scrolling auto-hides the top/bottom UI; tap the screen or scroll up to bring it back (this pauses while in-content search is open, resuming once you close it)
 - PDF supports zoom via mouse wheel and touch pinch
 - Text-to-speech: pick from the voices installed on your system and adjust playback speed from x1.0 to x2.0 in 0.2 steps — available across EPUB, PDF, TXT, DOCX, and RTF

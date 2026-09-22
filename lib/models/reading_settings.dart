@@ -173,7 +173,7 @@ class ReadingSettings {
     paragraphIndent: 0,
     backgroundKey: 'white',
     themeMode: ThemeMode.system,
-    showProgress: true,
+    showProgress: false,
     locale: AppLocale.ko,
     appName: AppBrand.moonAtelier,
     showFormatIcon: true,
@@ -265,7 +265,7 @@ class ReadingSettings {
     paragraphIndent: (raw['paragraphIndent'] as num).toDouble(),
     backgroundKey: raw['backgroundKey'] as String,
     themeMode: ThemeMode.values.byName(raw['themeMode'] as String),
-    showProgress: raw['showProgress'] as bool? ?? true,
+    showProgress: raw['showProgress'] as bool? ?? false,
     locale: AppLocale.values.firstWhere(
       (l) => l.name == raw['locale'],
       orElse: () => AppLocale.ko,

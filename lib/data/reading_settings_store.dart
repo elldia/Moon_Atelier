@@ -37,12 +37,26 @@ class ReadingSettingsStore {
       // change switches those installs to the new international default.
       // The flag means later loads leave a real (possibly Korean) choice
       // made through Settings alone.
+      var dirty = false;
       if (raw['appNameMigrated'] != true) {
         if (settings.appName == AppBrand.moonlightLibrary) {
           settings = settings.copyWith(appName: AppBrand.moonAtelier);
         }
-        unawaited(save(settings));
+        dirty = true;
       }
+      // One-time migration: the bottom progress bar (scroll position +
+      // page-jump buttons) used to default to visible; it now defaults to
+      // hidden. Existing saves predating this change get switched over
+      // once — the flag means a later load leaves a real choice (on or
+      // off) made through Settings alone, rather than re-forcing it every
+      // time the app loads.
+      if (raw['showProgressMigrated'] != true) {
+        if (settings.showProgress) {
+          settings = settings.copyWith(showProgress: false);
+        }
+        dirty = true;
+      }
+      if (dirty) unawaited(save(settings));
       return settings;
     } catch (_) {
       return ReadingSettings.defaults;
@@ -50,7 +64,9 @@ class ReadingSettingsStore {
   }
 
   static Future<void> save(ReadingSettings settings) {
-    final map = settings.toMap()..['appNameMigrated'] = true;
+    final map = settings.toMap()
+      ..['appNameMigrated'] = true
+      ..['showProgressMigrated'] = true;
     return _b.put(_key, map);
   }
 }

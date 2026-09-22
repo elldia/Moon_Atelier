@@ -65,9 +65,8 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
         mimeType: 'application/zip',
       );
       if (!mounted || uri == null) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('backup_done'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('backup_done'))));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,8 +164,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                         _SectionLabel(tr('app_name_section')),
                         _AppNameSelector(
                           value: _draft.appName,
-                          onChanged: (v) =>
-                              _set((s) => s.copyWith(appName: v)),
+                          onChanged: (v) => _set((s) => s.copyWith(appName: v)),
                         ),
                       ],
                       const SizedBox(height: 20),
@@ -224,51 +222,61 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                             _set((s) => s.copyWith(fontWeight: v)),
                       ),
                       const SizedBox(height: 12),
-                      _SliderRow(
-                        label: tr('font_size'),
+                      _SectionLabel(tr('font_size')),
+                      _LevelSelector(
+                        levels: const [12, 14, 16, 20, 24],
                         value: _draft.fontSize,
-                        min: 12,
-                        max: 32,
-                        valueLabel: _draft.fontSize.round().toString(),
                         onChanged: (v) => _set((s) => s.copyWith(fontSize: v)),
+                        previewBuilder: (context, v) => Text(
+                          '가',
+                          style: TextStyle(
+                            fontSize: v,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                      _SliderRow(
-                        label: tr('letter_spacing'),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('letter_spacing')),
+                      _LevelSelector(
+                        levels: const [-1, -0.5, 0, 1, 2],
                         value: _draft.letterSpacing,
-                        min: -2,
-                        max: 6,
-                        divisions: 16,
-                        valueLabel: _draft.letterSpacing.toStringAsFixed(1),
                         onChanged: (v) =>
                             _set((s) => s.copyWith(letterSpacing: v)),
+                        previewBuilder: (context, v) => Text(
+                          '가나',
+                          style: TextStyle(fontSize: 15, letterSpacing: v),
+                        ),
                       ),
-                      _SliderRow(
-                        label: tr('line_height'),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('line_height')),
+                      _LevelSelector(
+                        levels: const [1.2, 1.35, 1.5, 1.8, 2.1],
                         value: _draft.lineHeight,
-                        min: 1.0,
-                        max: 2.4,
-                        divisions: 14,
-                        valueLabel: _draft.lineHeight.toStringAsFixed(1),
                         onChanged: (v) =>
                             _set((s) => s.copyWith(lineHeight: v)),
+                        previewBuilder: (context, v) => Text(
+                          '가\n나',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 11, height: v),
+                        ),
                       ),
-                      _SliderRow(
-                        label: tr('page_margin'),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('page_margin')),
+                      _LevelSelector(
+                        levels: const [4, 10, 16, 24, 32],
                         value: _draft.pageMargin,
-                        min: 0,
-                        max: 48,
-                        valueLabel: _draft.pageMargin.round().toString(),
                         onChanged: (v) =>
                             _set((s) => s.copyWith(pageMargin: v)),
+                        previewBuilder: _marginPreview,
                       ),
-                      _SliderRow(
-                        label: tr('paragraph_indent'),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('paragraph_indent')),
+                      _LevelSelector(
+                        levels: const [0, 8, 16, 24, 32],
                         value: _draft.paragraphIndent,
-                        min: 0,
-                        max: 48,
-                        valueLabel: _draft.paragraphIndent.round().toString(),
                         onChanged: (v) =>
                             _set((s) => s.copyWith(paragraphIndent: v)),
+                        previewBuilder: _indentPreview,
                       ),
                       const SizedBox(height: 20),
                       _SectionLabel(tr('tts_settings')),
@@ -690,41 +698,149 @@ class _TtsSpeedSelector extends StatelessWidget {
   }
 }
 
-class _SliderRow extends StatelessWidget {
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final String valueLabel;
-  final int? divisions;
-  final ValueChanged<double> onChanged;
+/// One of the 5 fixed points (매우작게 → 매우 크게) any reading-size setting
+/// can be set to, each rendered with a live preview of what it actually
+/// looks like instead of a bare number — a slider's "18" or "1.4" means
+/// nothing to read at a glance, but a bigger/wider/taller sample does.
+const _levelLabelKeys = [
+  'level_xs',
+  'level_s',
+  'level_m',
+  'level_l',
+  'level_xl',
+];
 
-  const _SliderRow({
-    required this.label,
+class _LevelSelector extends StatelessWidget {
+  final List<double> levels; // exactly 5, matching _levelLabelKeys
+  final double value;
+  final ValueChanged<double> onChanged;
+  final Widget Function(BuildContext context, double value) previewBuilder;
+
+  const _LevelSelector({
+    required this.levels,
     required this.value,
-    required this.min,
-    required this.max,
-    required this.valueLabel,
     required this.onChanged,
-    this.divisions,
+    required this.previewBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    // Picks the closest preset so a value saved before this UI existed (or
+    // restored from an older backup) still highlights a sensible level
+    // instead of matching none of the 5.
+    var closest = levels.first;
+    var bestDiff = (value - closest).abs();
+    for (final level in levels) {
+      final diff = (value - level).abs();
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        closest = level;
+      }
+    }
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        SizedBox(width: 64, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            divisions: divisions,
-            onChanged: onChanged,
+        for (var i = 0; i < levels.length; i++)
+          _LevelCard(
+            label: tr(_levelLabelKeys[i]),
+            selected: levels[i] == closest,
+            onTap: () => onChanged(levels[i]),
+            child: previewBuilder(context, levels[i]),
           ),
-        ),
-        SizedBox(width: 32, child: Text(valueLabel, textAlign: TextAlign.end)),
       ],
     );
   }
+}
+
+class _LevelCard extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _LevelCard({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        width: 58,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: selected ? color : Theme.of(context).dividerColor,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 36,
+              child: FittedBox(fit: BoxFit.scaleDown, child: child),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: selected ? color : null,
+                fontWeight: selected ? FontWeight.w700 : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A little "page" diagram whose inner colored block shrinks as the margin
+/// grows, standing in for [ReadingSettings.pageMargin] since that value has
+/// no font attribute to preview directly.
+Widget _marginPreview(BuildContext context, double value) {
+  final color = Theme.of(context).colorScheme.primary;
+  final inset = (value / 48 * 11).clamp(1.0, 12.0);
+  return Container(
+    width: 30,
+    height: 30,
+    decoration: BoxDecoration(
+      border: Border.all(color: Theme.of(context).dividerColor),
+      borderRadius: BorderRadius.circular(3),
+    ),
+    padding: EdgeInsets.all(inset),
+    child: DecoratedBox(
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.5)),
+    ),
+  );
+}
+
+/// A two-line paragraph mockup whose first line is offset to match
+/// [ReadingSettings.paragraphIndent], since indent has no font attribute
+/// to preview directly either.
+Widget _indentPreview(BuildContext context, double value) {
+  final color = Theme.of(context).colorScheme.primary;
+  final indent = (value / 48 * 16).clamp(0.0, 16.0);
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: EdgeInsets.only(left: indent),
+        child: Container(width: 20, height: 4, color: color),
+      ),
+      const SizedBox(height: 3),
+      Container(width: 30, height: 4, color: color.withValues(alpha: 0.5)),
+    ],
+  );
 }
