@@ -2,6 +2,7 @@
 
 **Live:** https://elldia.github.io/Moon_Atelier/
 **Windows download (offline fallback):** https://github.com/elldia/Moon_Atelier/releases
+**Privacy policy:** https://elldia.github.io/Moon_Atelier/privacy.html
 
 ## 한국어
 

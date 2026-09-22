@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개인정보처리방침 / Privacy Policy — Moon Atelier (달빛서재)</title>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f3fb;
+      --fg: #262220;
+      --muted: #5b5560;
+      --card: rgba(255, 255, 255, 0.6);
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #6b4fbb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1625;
+        --fg: #e8e3dd;
+        --muted: #b3abc2;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.1);
+        --accent: #b39ddb;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, var(--bg), var(--bg));
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Roboto, sans-serif;
+      line-height: 1.65;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+    .updated {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+    h2 {
+      font-size: 1.05rem;
+      margin: 0 0 8px;
+      color: var(--accent);
+    }
+    p { margin: 0 0 8px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--accent); }
+    .lang-block + .lang-block {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    ul { margin: 0 0 8px; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="lang-block">
+      <h1>개인정보처리방침</h1>
+      <p class="updated">Moon Atelier (달빛서재) · 최종 수정일: 2026-09-22</p>
+
+      <section>
+        <h2>개요</h2>
+        <p>Moon Atelier(달빛서재)는 별도의 서버 없이 동작하는 앱입니다. 개발자는 사용자의 개인정보를 수집·저장·전송하지 않으며, 앱이 다루는 모든 데이터는 사용자의 기기(또는 브라우저) 안에만 남습니다.</p>
+      </section>
+
+      <section>
+        <h2>저장되는 데이터와 저장 위치</h2>
+        <p>사용자가 추가한 책/만화 파일, 북마크, 형광펜(하이라이트), 폴더, 읽기 설정 등은 기기의 로컬 저장소에만 저장됩니다(웹 버전은 브라우저의 IndexedDB, 안드로이드 버전은 기기 내부 저장소). 이 데이터는 어떤 서버로도 전송되지 않으며, 개발자를 포함해 그 누구도 접근할 수 없습니다. 브라우저 데이터를 지우거나 앱을 삭제하면 함께 삭제됩니다.</p>
+      </section>
+
+      <section>
+        <h2>선택적 외부 연동</h2>
+        <ul>
+          <li><strong>Dropbox / OneDrive</strong>: 파일 가져오기 기능은 각 서비스가 제공하는 공식 피커(Chooser)를 통해 사용자의 기기와 해당 서비스가 직접 통신합니다. 로그인 정보나 접근 토큰은 앱이나 개발자를 거치지 않습니다.</li>
+          <li><strong>FTP 서버 / 같은 Wi-Fi 기기 간 전송</strong>: 사용자가 직접 주소를 입력하거나 같은 네트워크의 다른 기기와 연결하는 기능으로, 개발자가 운영하는 서버는 관여하지 않습니다.</li>
+        </ul>
+        <p>이 기능들은 모두 사용자가 직접 실행해야만 동작하며, 자동으로 실행되지 않습니다.</p>
+      </section>
+
+      <section>
+        <h2>백업 파일</h2>
+        <p>서재 백업(내려받기/메일 공유)으로 만들어지는 zip 파일은 사용자가 선택한 위치에만 저장되며, 개발자는 그 사본을 받지 않습니다. 백업 복원 역시 사용자가 직접 고른 파일을 기기 안에서만 처리합니다.</p>
+      </section>
+
+      <section>
+        <h2>음성으로 듣기(TTS)</h2>
+        <p>기기 또는 브라우저에 이미 설치된 음성 엔진을 사용하며, 읽어주는 텍스트를 외부 서버로 전송하지 않습니다.</p>
+      </section>
+
+      <section>
+        <h2>외부 링크</h2>
+        <p>개발자 후원(Buy Me a Coffee), Windows용 프로그램 다운로드(GitHub Releases) 등 일부 버튼은 누르면 외부 웹사이트로 이동합니다. 그 사이트에서는 해당 사이트 자체의 개인정보처리방침이 적용됩니다.</p>
+      </section>
+
+      <section>
+        <h2>권한(안드로이드)</h2>
+        <p>인터넷 권한은 위에서 설명한 선택적 연동 기능(Dropbox/OneDrive/FTP)과 악보(MusicXML) 렌더링에만 사용되며, 앱이 자체적으로 개인 데이터를 어디로도 전송하지 않습니다.</p>
+      </section>
+
+      <section>
+        <h2>아동의 개인정보</h2>
+        <p>이 앱은 특정 연령층을 대상으로 하지 않으며, 앞서 설명한 대로 애초에 수집하는 개인정보가 없습니다.</p>
+      </section>
+
+      <section>
+        <h2>이 정책의 변경</h2>
+        <p>정책이 바뀌면 이 페이지의 내용과 상단의 최종 수정일이 갱신됩니다. 별도의 통지 없이 갱신될 수 있으니 필요시 이 페이지를 다시 확인해 주세요.</p>
+      </section>
+
+      <section>
+        <h2>문의</h2>
+        <p>문의사항은 <a href="mailto:elldia1222@gmail.com">elldia1222@gmail.com</a>으로 연락해 주세요.</p>
+      </section>
+    </div>
+
+    <div class="lang-block">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Moon Atelier (달빛서재) · Last updated: 2026-09-22</p>
+
+      <section>
+        <h2>Overview</h2>
+        <p>Moon Atelier runs without any backend server. The developer does not collect, store, or transmit any personal data — everything the app handles stays on your own device (or browser).</p>
+      </section>
+
+      <section>
+        <h2>What's stored, and where</h2>
+        <p>Books/comics you add, bookmarks, highlights, folders, and reading settings are stored only in your device's local storage (the browser's IndexedDB on the web version, on-device storage on Android). None of it is ever sent to a server, and no one — including the developer — can access it. It's deleted if you clear your browser data or uninstall the app.</p>
+      </section>
+
+      <section>
+        <h2>Optional third-party integrations</h2>
+        <ul>
+          <li><strong>Dropbox / OneDrive</strong>: the file-import feature uses each service's own official picker widget, which connects your device directly to that service. Your login credentials or access tokens never pass through this app or the developer.</li>
+          <li><strong>FTP servers / Wi-Fi transfer between your own devices</strong>: you enter the server address yourself, or connect to another device on the same network — no server run by the developer is involved.</li>
+        </ul>
+        <p>All of these only run when you explicitly start them; none of them run automatically.</p>
+      </section>
+
+      <section>
+        <h2>Backup files</h2>
+        <p>A library backup (download or email share) is saved only wherever you choose — the developer never receives a copy. Restoring a backup likewise only processes the file you pick, entirely on your device.</p>
+      </section>
+
+      <section>
+        <h2>Text-to-speech</h2>
+        <p>Uses the voice engine already installed on your device or browser. The text being read is never sent to an external server.</p>
+      </section>
+
+      <section>
+        <h2>External links</h2>
+        <p>A few buttons — "Buy Me a Coffee" and the Windows-app download (GitHub Releases) — open an external website when tapped. That site's own privacy policy applies once you leave the app.</p>
+      </section>
+
+      <section>
+        <h2>Permissions (Android)</h2>
+        <p>The Internet permission is used only for the optional integrations above (Dropbox/OneDrive/FTP) and for rendering MusicXML sheet music — the app never uses it to send personal data anywhere on its own.</p>
+      </section>
+
+      <section>
+        <h2>Children's privacy</h2>
+        <p>This app isn't directed at any specific age group, and as described above, it doesn't collect personal data from anyone in the first place.</p>
+      </section>
+
+      <section>
+        <h2>Changes to this policy</h2>
+        <p>Any changes will be reflected on this page, with the "last updated" date above kept current. Please check back here for updates, since none are announced separately.</p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>Questions? Reach out at <a href="mailto:elldia1222@gmail.com">elldia1222@gmail.com</a>.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
