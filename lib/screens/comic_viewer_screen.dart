@@ -183,6 +183,19 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     _precacheNeighbors();
   }
 
+  /// Steps one page-turn "click" forward ([direction] > 0) or backward
+  /// ([direction] < 0) from the current page. In two-page mode, [_page] is
+  /// always the spread's first (odd) page number — see [_onPageViewChanged]
+  /// — so stepping by a single page only crosses into the next spread when
+  /// going backward (an odd page minus 1 lands on the previous spread's
+  /// last page) and never when going forward (an odd page plus 1 is still
+  /// that same spread's second page). Stepping by a full spread (2 pages)
+  /// keeps both directions symmetric.
+  void _advancePage(int direction) {
+    final step = _mode == ComicViewMode.twoPage ? 2 : 1;
+    _jumpToPage(_page + step * direction);
+  }
+
   /// Mouse-wheel/trackpad equivalent of the arrow-key page turn. Debounced
   /// so one physical wheel "notch" — which can fire several scroll events
   /// in a browser — turns exactly one page instead of several.
@@ -199,7 +212,7 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
       return;
     }
     _lastWheelPageTurn = now;
-    _jumpToPage(_page + (delta > 0 ? 1 : -1));
+    _advancePage(delta > 0 ? 1 : -1);
   }
 
   /// Tap-to-turn-page: an edge strip of the content area (sized by
@@ -219,9 +232,9 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
         : details.localPosition.dy;
     final fraction = settings.tapZoneFraction;
     if (offset < extent * fraction) {
-      _jumpToPage(_page - 1);
+      _advancePage(-1);
     } else if (offset > extent * (1 - fraction)) {
-      _jumpToPage(_page + 1);
+      _advancePage(1);
     } else {
       setState(() => _uiVisible = !_uiVisible);
     }
@@ -230,10 +243,10 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   void _handleArrowKey(LogicalKeyboardKey key) {
     if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.arrowDown) {
-      _jumpToPage(_page + 1);
+      _advancePage(1);
     } else if (key == LogicalKeyboardKey.arrowLeft ||
         key == LogicalKeyboardKey.arrowUp) {
-      _jumpToPage(_page - 1);
+      _advancePage(-1);
     }
   }
 
