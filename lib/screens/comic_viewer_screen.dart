@@ -14,7 +14,6 @@ import '../models/comic_settings.dart';
 import '../utils/comic_archive.dart';
 import '../widgets/comic_settings_sheet.dart';
 import '../widgets/glass.dart';
-import '../widgets/page_jump_row.dart';
 import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
@@ -93,7 +92,9 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   /// brief hitch right as a page turn lands.
   void _precacheNeighbors() {
     final archive = _archive;
-    if (archive == null || !mounted || _mode == ComicViewMode.continuousScroll) {
+    if (archive == null ||
+        !mounted ||
+        _mode == ComicViewMode.continuousScroll) {
       return;
     }
     final count = archive.pageCount;
@@ -239,10 +240,9 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     }
 
     final itemCount = _mode == ComicViewMode.twoPage ? _spreadCount : count;
-    final targetIndex = (_mode == ComicViewMode.twoPage
-            ? (clamped - 1) ~/ 2
-            : clamped - 1)
-        .clamp(0, itemCount - 1);
+    final targetIndex =
+        (_mode == ComicViewMode.twoPage ? (clamped - 1) ~/ 2 : clamped - 1)
+            .clamp(0, itemCount - 1);
     if (animate) {
       _pageController?.animateToPage(
         targetIndex,
@@ -269,7 +269,8 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     if (delta.abs() < 1) return;
     final now = DateTime.now();
     if (_lastWheelPageTurn != null &&
-        now.difference(_lastWheelPageTurn!) < const Duration(milliseconds: 180)) {
+        now.difference(_lastWheelPageTurn!) <
+            const Duration(milliseconds: 180)) {
       return;
     }
     _lastWheelPageTurn = now;
@@ -280,7 +281,11 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   /// [ComicSettings.tapZoneFraction] along [ComicSettings.tapZoneDirection])
   /// turns to the previous/next page; the remaining middle strip toggles the
   /// reading UI, as a plain tap always used to.
-  void _handleContentTap(TapUpDetails details, Size size, ComicSettings settings) {
+  void _handleContentTap(
+    TapUpDetails details,
+    Size size,
+    ComicSettings settings,
+  ) {
     final isHorizontal = settings.tapZoneDirection == ComicDirection.horizontal;
     final extent = isHorizontal ? size.width : size.height;
     if (extent <= 0) return;
@@ -381,7 +386,10 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
   // of the direction setting — that setting only applies to page-turning in
   // single/two-page mode. Scrolling sideways through a strip of full-height
   // pages isn't how anyone actually reads a continuous comic.
-  Widget _buildContinuousScroll(ComicImageQuality quality, BuildContext context) {
+  Widget _buildContinuousScroll(
+    ComicImageQuality quality,
+    BuildContext context,
+  ) {
     final size = MediaQuery.sizeOf(context);
     final images = [
       for (var index = 0; index < _archive!.pageCount; index++)
@@ -434,7 +442,6 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
         final settings = ReadingSettingsController.instance.value;
         final comicSettings = ComicSettingsController.instance.value;
         final narrow = MediaQuery.of(context).size.width < 420;
-        final showBar = settings.showProgress && count > 1;
 
         final progressChip = settings.showProgress
             ? Padding(
@@ -534,74 +541,14 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
                   // the whole screen, leaving no middle strip to tap for the
                   // UI toggle — long-press always reaches it as a fallback.
                   onLongPress: () => setState(() => _uiVisible = !_uiVisible),
-                  child: comicSettings.viewMode == ComicViewMode.continuousScroll
+                  child:
+                      comicSettings.viewMode == ComicViewMode.continuousScroll
                       ? _buildContinuousScroll(comicSettings.quality, context)
                       : _buildPagedView(comicSettings.quality),
                 ),
               ),
             ),
           ),
-          floatingActionButton: !_uiVisible
-              ? null
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    FloatingActionButton.small(
-                      heroTag: 'prev',
-                      onPressed: () => _jumpToPage(_page - 1),
-                      child: const Icon(Icons.chevron_left),
-                    ),
-                    const SizedBox(width: 12),
-                    FloatingActionButton.small(
-                      heroTag: 'next',
-                      onPressed: () => _jumpToPage(_page + 1),
-                      child: const Icon(Icons.chevron_right),
-                    ),
-                  ],
-                ),
-          bottomNavigationBar: showBar && _uiVisible
-              ? SafeArea(
-                  child: SizedBox(
-                    height: 36,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 7,
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 2,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 6,
-                                ),
-                                overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 14,
-                                ),
-                              ),
-                              child: Slider(
-                                value: (_page / count).clamp(0.0, 1.0),
-                                onChanged: (ratio) =>
-                                    _jumpToPage((ratio * count).round()),
-                              ),
-                            ),
-                          ),
-                          if (count >= 100)
-                            Expanded(
-                              flex: 3,
-                              child: PageJumpRow(
-                                onFirst: () => _jumpToPage(1),
-                                onBack10: () => _jumpToPage(_page - 10),
-                                onForward10: () => _jumpToPage(_page + 10),
-                                onLast: () => _jumpToPage(count),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              : null,
         );
       },
     );
