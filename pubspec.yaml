@@ -66,6 +66,11 @@ dependencies:
   ftpconnect: ^3.0.0
   shelf: ^1.4.2
   shelf_multipart: ^2.0.1
+  # Native (Android/iOS) OAuth for the Dropbox picker -- opens the
+  # authorize URL in a Custom Tab / ASWebAuthenticationSession and captures
+  # the moonatelier:// redirect. See dropbox_picker_io.dart.
+  flutter_web_auth_2: ^5.1.0
+  crypto: ^3.0.7
 
 dependency_overrides:
   # flutter_html 3.0.0 (via epub_view) calls a private query_selector API

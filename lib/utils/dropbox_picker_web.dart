@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:js_interop';
 
+import 'package:flutter/widgets.dart';
+
 /// A file the user picked via the Dropbox Chooser widget — [link] is a
 /// short-lived direct-download URL (since the widget is opened with
 /// `linkType: "direct"`), fetchable with a plain HTTP GET.
@@ -19,7 +21,14 @@ bool get isDropboxChooserAvailable => _dropbox != null;
 /// Opens the Dropbox Chooser popup and resolves with the single file the
 /// user picked, or null if they cancelled. Returns null immediately (no
 /// popup) if [isDropboxChooserAvailable] is false.
-Future<DropboxFileResult?> chooseDropboxFile({List<String>? extensions}) {
+///
+/// [context] is unused here (the Chooser is Dropbox's own JS popup, not a
+/// Flutter widget) -- it only exists so this has the same signature as the
+/// native picker, which needs one to show its folder-browser dialog.
+Future<DropboxFileResult?> chooseDropboxFile({
+  required BuildContext context,
+  List<String>? extensions,
+}) {
   final dropbox = _dropbox;
   if (dropbox == null) return Future.value(null);
 

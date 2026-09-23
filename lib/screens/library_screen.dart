@@ -267,6 +267,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     try {
       final picked =
           await chooseDropboxFile(
+            context: context,
             extensions: _isComic
                 ? ['.cbz', '.zip']
                 : [
