@@ -167,6 +167,5 @@ Uint8List _ensureFullEpubToc(Uint8List bytes) {
   );
 
   final encoded = ZipEncoder().encode(newArchive);
-  if (encoded == null) return bytes;
   return Uint8List.fromList(encoded);
 }

@@ -20,7 +20,7 @@ String extractMusicXmlText(Uint8List bytes) {
   // if that's missing or malformed.
   ArchiveFile? rootFile;
   for (final f in archive.files) {
-    if (f.name == 'META-INF/container.xml' && f.content != null) {
+    if (f.name == 'META-INF/container.xml') {
       try {
         final doc = XmlDocument.parse(
           utf8.decode(f.content as List<int>, allowMalformed: true),

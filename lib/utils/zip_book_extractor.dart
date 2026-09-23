@@ -32,12 +32,10 @@ ZipExtractedFile? findSupportedFileInZip(Uint8List zipBytes) {
     final ext = name.substring(dotIndex + 1);
     final format = Book.formatFromExtension(ext);
     if (format == null) continue;
-    final content = file.content;
-    if (content is! List<int>) continue;
     return ZipExtractedFile(
       name: name.split('/').last,
       format: format,
-      bytes: Uint8List.fromList(content),
+      bytes: Uint8List.fromList(file.content),
     );
   }
   return null;
