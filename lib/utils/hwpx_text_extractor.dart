@@ -39,10 +39,22 @@ String extractHwpxText(Uint8List bytes) {
     final paragraphs = document.findAllElements('p', namespace: '*').map((
       paragraph,
     ) {
-      return paragraph
-          .findAllElements('t', namespace: '*')
-          .map((t) => t.innerText)
-          .join();
+      // <hp:tab/> and <hp:lineBreak/> are self-closing siblings of <hp:t>
+      // with no text content of their own -- collecting only <hp:t> runs
+      // silently drops every tab/line-break, fusing adjacent words together
+      // (e.g. a table cell's "Column1\tColumn2" becomes "Column1Column2").
+      final buffer = StringBuffer();
+      for (final el in paragraph.descendantElements) {
+        switch (el.name.local) {
+          case 't':
+            buffer.write(el.innerText);
+          case 'tab':
+            buffer.write('\t');
+          case 'lineBreak':
+            buffer.write('\n');
+        }
+      }
+      return buffer.toString();
     });
     return paragraphs.join('\n');
   });
