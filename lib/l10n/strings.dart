@@ -122,10 +122,10 @@ const _dict = <String, List<String>>{
     '显示进度条和跳转按钮',
   ],
   'comic_progress_bar_desc': [
-    '화면 하단에 위치 슬라이더를 표시해요. 100페이지 이상이면 처음으로/10페이지 앞뒤로/끝으로 버튼도 함께 표시돼요',
-    'Shows a position slider at the bottom. Past 100 pages, first/±10/last jump buttons appear alongside it',
-    '画面下部に位置スライダーを表示します。100ページ以上の場合、最初へ/10ページ前後/最後へのボタンも表示されます',
-    '在屏幕底部显示位置滑块。超过100页时,还会显示首页/前后10页/末页跳转按钮',
+    '화면 하단에 위치 슬라이더와 처음으로/10페이지 앞뒤로/끝으로 버튼을 표시해요. 10페이지 이하 만화는 10페이지 앞뒤로 버튼이 비활성화돼요',
+    'Shows a position slider and first/±10/last jump buttons at the bottom. The ±10 buttons are disabled on comics of 10 pages or fewer',
+    '画面下部に位置スライダーと最初へ/10ページ前後/最後へのボタンを表示します。10ページ以下の漫画では10ページ前後のボタンが無効になります',
+    '在屏幕底部显示位置滑块和首页/前后10页/末页跳转按钮。10页以下的漫画会禁用前后10页按钮',
   ],
   'comic_open_error': [
     '만화 파일을 여는 중 오류가 발생했습니다: {error}\n이미지가 들어있는 CBZ/ZIP 파일인지 확인해 주세요.',
