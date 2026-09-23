@@ -28,6 +28,15 @@ class TtsReader {
   bool _speaking = false;
   bool get isSpeaking => _speaking;
 
+  // Stored on the instance (rather than captured straight into the
+  // utterance's onend/onerror closures) so [stop] can null them out before
+  // cancelling -- otherwise a deliberate stop can still fire the
+  // just-cancelled utterance's onerror (browsers report a manual cancel as
+  // an error event), invoking a stale callback bound to whatever text was
+  // playing before the stop, same fix already applied on the native side.
+  void Function()? _onDone;
+  void Function(String error)? _onError;
+
   List<TtsVoiceInfo> voices() => web.window.speechSynthesis
       .getVoices()
       .toDart
@@ -67,6 +76,8 @@ class TtsReader {
     void Function(String error)? onError,
   }) {
     web.window.speechSynthesis.cancel();
+    _onDone = null;
+    _onError = null;
     if (text.trim().isEmpty) {
       onDone();
       return;
@@ -77,13 +88,21 @@ class TtsReader {
     final rawVoice = voice == null ? null : _rawVoice(voice.voiceURI);
     if (rawVoice != null) utterance.voice = rawVoice;
     _speaking = true;
+    _onDone = onDone;
+    _onError = onError;
     utterance.onend = (web.Event _) {
       _speaking = false;
-      onDone();
+      final done = _onDone;
+      _onDone = null;
+      _onError = null;
+      done?.call();
     }.toJS;
     utterance.onerror = (web.Event e) {
       _speaking = false;
-      onError?.call('speech synthesis error');
+      final error = _onError;
+      _onDone = null;
+      _onError = null;
+      error?.call('speech synthesis error');
     }.toJS;
     web.window.speechSynthesis.speak(utterance);
   }
@@ -94,6 +113,8 @@ class TtsReader {
 
   void stop() {
     _speaking = false;
+    _onDone = null;
+    _onError = null;
     web.window.speechSynthesis.cancel();
   }
 }
