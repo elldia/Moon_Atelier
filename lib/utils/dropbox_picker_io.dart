@@ -27,7 +27,7 @@ class DropboxFileResult {
 /// "OAuth 2" -> "Redirect URIs" before this will work -- until a real key
 /// replaces this placeholder, [isDropboxChooserAvailable] stays false, the
 /// same convention the web build's own Dropbox/OneDrive app keys use.
-const dropboxAppKey = 'YOUR_DROPBOX_APP_KEY';
+const dropboxAppKey = 'jy0y83lq9ocl8cx';
 
 const _redirectUri = 'moonatelier://dropbox-auth';
 const _callbackUrlScheme = 'moonatelier';
