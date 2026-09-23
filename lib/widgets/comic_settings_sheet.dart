@@ -71,11 +71,20 @@ class _ComicSettingsSheet extends StatelessWidget {
                             ChoiceChip(
                               label: Text(locale.label),
                               selected: readingSettings.locale == locale,
+                              // ChoiceChip.onSelected fires even when
+                              // re-tapping the chip that's already
+                              // selected -- only reset the brand name when
+                              // the locale is actually changing, or a
+                              // manually-picked non-default brand name gets
+                              // silently reset by tapping the current
+                              // language again.
                               onSelected: (_) => _setReading(
-                                (s) => s.copyWith(
-                                  locale: locale,
-                                  appName: appBrandForLocale(locale),
-                                ),
+                                (s) => s.locale == locale
+                                    ? s
+                                    : s.copyWith(
+                                        locale: locale,
+                                        appName: appBrandForLocale(locale),
+                                      ),
                               ),
                             ),
                         ],

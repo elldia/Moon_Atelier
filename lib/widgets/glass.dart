@@ -14,9 +14,7 @@ Color glassSurface(BuildContext context, {double opacity = 0.45}) {
 
 Color glassBorder(BuildContext context) {
   final dark = Theme.of(context).brightness == Brightness.dark;
-  return (dark ? Colors.white : Colors.white).withValues(
-    alpha: dark ? 0.12 : 0.55,
-  );
+  return Colors.white.withValues(alpha: dark ? 0.12 : 0.55);
 }
 
 /// A frosted card: blurred backdrop, translucent fill, thin light border,

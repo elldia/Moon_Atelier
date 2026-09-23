@@ -194,11 +194,18 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       _SectionLabel(tr('language_section')),
                       _LocaleSelector(
                         value: _draft.locale,
+                        // Re-tapping the already-selected chip still fires
+                        // onSelected -- only reset the brand name when the
+                        // locale is actually changing, or a user who picked
+                        // a non-default brand name loses that choice just
+                        // by tapping their current language again.
                         onChanged: (v) => _set(
-                          (s) => s.copyWith(
-                            locale: v,
-                            appName: appBrandForLocale(v),
-                          ),
+                          (s) => s.locale == v
+                              ? s
+                              : s.copyWith(
+                                  locale: v,
+                                  appName: appBrandForLocale(v),
+                                ),
                         ),
                       ),
                       if (_draft.locale == AppLocale.ko) ...[
