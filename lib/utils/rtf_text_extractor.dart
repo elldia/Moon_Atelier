@@ -19,13 +19,25 @@ String extractRtfText(Uint8List bytes) {
 
   final buffer = StringBuffer();
   final skipStack = <bool>[false];
+  // \ansicpg (codepage) and \uc (Unicode-fallback byte count) are both
+  // group-scoped properties per the RTF spec: a value set inside a `{...}`
+  // group must revert once that group closes, the same way skipStack's
+  // skip flag already does. Kept as parallel stacks pushed/popped in
+  // lockstep with skipStack rather than plain mutable variables, so a
+  // nested group changing either one doesn't leak into unrelated text that
+  // follows the group.
+  final ucStack = <int>[1];
+  final encodingStack = <Encoding>[latin1];
 
-  Encoding textEncoding = latin1;
-  var uc = 1;
   var skipFallback = 0;
   var hexBytes = <int>[];
 
   bool skipping() => skipStack[skipStack.length - 1];
+  int uc() => ucStack[ucStack.length - 1];
+  void setUc(int v) => ucStack[ucStack.length - 1] = v;
+  Encoding textEncoding() => encodingStack[encodingStack.length - 1];
+  void setTextEncoding(Encoding v) =>
+      encodingStack[encodingStack.length - 1] = v;
 
   void flushHexBytes() {
     if (hexBytes.isEmpty) return;
@@ -35,7 +47,7 @@ String extractRtfText(Uint8List bytes) {
       skipFallback--;
     } else if (!skipping()) {
       try {
-        buffer.write(textEncoding.decode(chunk));
+        buffer.write(textEncoding().decode(chunk));
       } on FormatException {
         buffer.write(latin1.decode(chunk));
       }
@@ -62,22 +74,22 @@ String extractRtfText(Uint8List bytes) {
         break;
       case 'ansicpg':
         if (param != null) {
-          textEncoding = switch (param) {
+          setTextEncoding(switch (param) {
             949 => cp949,
             65001 => utf8,
             _ => latin1,
-          };
+          });
         }
         break;
       case 'uc':
-        if (param != null) uc = param;
+        if (param != null) setUc(param);
         break;
       case 'u':
         if (param != null) {
           var codeUnit = param;
           if (codeUnit < 0) codeUnit += 65536;
           if (!skipping()) buffer.writeCharCode(codeUnit);
-          skipFallback = uc;
+          skipFallback = uc();
         }
         break;
       case 'fonttbl':
@@ -186,9 +198,13 @@ String extractRtfText(Uint8List bytes) {
     }
 
     if (code == 0x7B) {
-      // {
+      // { -- a new group inherits the enclosing group's skip/uc/encoding
+      // as its starting point; any of the three it sets itself only lives
+      // until the matching `}`.
       flushHexBytes();
       skipStack.add(skipping());
+      ucStack.add(uc());
+      encodingStack.add(textEncoding());
       i++;
       continue;
     }
@@ -196,6 +212,8 @@ String extractRtfText(Uint8List bytes) {
       // }
       flushHexBytes();
       if (skipStack.length > 1) skipStack.removeLast();
+      if (ucStack.length > 1) ucStack.removeLast();
+      if (encodingStack.length > 1) encodingStack.removeLast();
       i++;
       continue;
     }
