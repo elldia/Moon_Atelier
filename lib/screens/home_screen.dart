@@ -42,6 +42,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// True for a web build running inside a mobile/tablet browser -- Flutter
+  /// web infers this from the user agent via [defaultTargetPlatform]. The
+  /// Windows download link is desktop-only, so tapping it here should
+  /// explain that instead of sending a phone/tablet browser to a page it
+  /// can't do anything useful with.
+  bool get _isMobileOrTabletWeb =>
+      kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  void _openWindowsDownload() {
+    if (_isMobileOrTabletWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('windows_download_desktop_only'))),
+      );
+      return;
+    }
+    launchUrl(_windowsDownloadUrl, webOnlyWindowName: '_blank');
+  }
+
   /// Pushes the given library, optionally auto-opening one book in it, then
   /// refreshes on return — opening a book (from here or from within the
   /// library screen itself) can change its lastOpenedAt/progress, which the
@@ -107,10 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (kIsWeb) ...[
                         const SizedBox(height: 16),
                         TextButton(
-                          onPressed: () => launchUrl(
-                            _windowsDownloadUrl,
-                            webOnlyWindowName: '_blank',
-                          ),
+                          onPressed: _openWindowsDownload,
                           child: Text(
                             tr('home_windows_download'),
                             style: Theme.of(context).textTheme.bodySmall,

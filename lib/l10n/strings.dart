@@ -52,6 +52,12 @@ const _dict = <String, List<String>>{
     'Windows版アプリをダウンロード',
     '下载 Windows 版程序',
   ],
+  'windows_download_desktop_only': [
+    'Windows용 프로그램은 데스크탑에서만 내려받을 수 있어요.',
+    'The Windows app can only be downloaded from a desktop browser.',
+    'Windowsアプリはデスクトップでのみダウンロードできます。',
+    'Windows 版程序仅可在桌面端浏览器下载。',
+  ],
   'privacy_policy': ['개인정보처리방침', 'Privacy Policy', 'プライバシーポリシー', '隐私政策'],
   'supported_formats_hint_comic': [
     'CBZ, ZIP(이미지) 만화 파일을 열 수 있어요.',
