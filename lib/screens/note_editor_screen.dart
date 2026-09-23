@@ -6,8 +6,8 @@ import '../widgets/markdown_help_dialog.dart';
 
 /// What [NoteEditorScreen] hands back when the checkmark is pressed -- the
 /// only way out that saves. Backing out (arrow / system back) always
-/// discards instead: in create mode after confirming, in edit mode straight
-/// away, since the previously-saved version is untouched either way.
+/// discards instead, confirming first if anything was actually typed or
+/// changed -- the previously-saved version is untouched either way.
 class NoteResult {
   final String title;
   final String content;
@@ -68,12 +68,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
   }
 
+  /// Whether the title/body differ from what the screen opened with -- true
+  /// for any typing in create mode, and for any edit made to an existing
+  /// note. Drives whether backing out needs to confirm first.
+  bool get _hasUnsavedChanges =>
+      _titleController.text != (widget.initialTitle ?? '') ||
+      _bodyController.text != (widget.initialContent ?? '');
+
   /// The back arrow / system back gesture never saves by itself -- only the
-  /// checkmark does. Editing an existing note just leaves (there's nothing
-  /// to "discard" back to); creating a fresh one asks first, since backing
-  /// out here would otherwise silently drop everything just typed.
+  /// checkmark does. With nothing changed there's nothing to lose, so it
+  /// just leaves; otherwise it asks first, since backing out here would
+  /// otherwise silently drop whatever was typed or edited.
   Future<void> _handleBack() async {
-    if (widget.isEditing) {
+    if (!_hasUnsavedChanges) {
       Navigator.of(context).pop();
       return;
     }
