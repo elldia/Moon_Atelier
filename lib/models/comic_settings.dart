@@ -55,6 +55,12 @@ class ComicSettings {
   /// white behind text).
   final String backgroundKey;
 
+  /// Whether the bottom progress bar (position slider plus, past 100 pages,
+  /// the 처음으로/±10/끝으로 jump row) is shown in the comic viewer. Off by
+  /// default — page turning is already handled by tap zones, arrow keys,
+  /// and the wheel/trackpad.
+  final bool showProgressBar;
+
   const ComicSettings({
     required this.viewMode,
     required this.readingDirection,
@@ -63,6 +69,7 @@ class ComicSettings {
     required this.tapZoneDirection,
     required this.tapZoneFraction,
     required this.backgroundKey,
+    required this.showProgressBar,
   });
 
   static const defaults = ComicSettings(
@@ -73,6 +80,7 @@ class ComicSettings {
     tapZoneDirection: ComicDirection.horizontal,
     tapZoneFraction: 0.3,
     backgroundKey: 'black',
+    showProgressBar: false,
   );
 
   ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
@@ -85,6 +93,7 @@ class ComicSettings {
     ComicDirection? tapZoneDirection,
     double? tapZoneFraction,
     String? backgroundKey,
+    bool? showProgressBar,
   }) {
     return ComicSettings(
       viewMode: viewMode ?? this.viewMode,
@@ -94,6 +103,7 @@ class ComicSettings {
       tapZoneDirection: tapZoneDirection ?? this.tapZoneDirection,
       tapZoneFraction: tapZoneFraction ?? this.tapZoneFraction,
       backgroundKey: backgroundKey ?? this.backgroundKey,
+      showProgressBar: showProgressBar ?? this.showProgressBar,
     );
   }
 
@@ -105,6 +115,7 @@ class ComicSettings {
     'tapZoneDirection': tapZoneDirection.name,
     'tapZoneFraction': tapZoneFraction,
     'backgroundKey': backgroundKey,
+    'showProgressBar': showProgressBar,
   };
 
   factory ComicSettings.fromMap(Map raw) => ComicSettings(
@@ -130,5 +141,6 @@ class ComicSettings {
       0.5,
     ),
     backgroundKey: raw['backgroundKey'] as String? ?? 'black',
+    showProgressBar: raw['showProgressBar'] as bool? ?? false,
   );
 }

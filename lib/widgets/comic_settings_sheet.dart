@@ -197,6 +197,16 @@ class _ComicSettingsSheet extends StatelessWidget {
                         onChanged: (v) =>
                             _set((s) => s.copyWith(animatePageTurns: v)),
                       ),
+                      const SizedBox(height: 16),
+                      _SectionLabel(tr('comic_progress_bar_section')),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(tr('comic_progress_bar_title')),
+                        subtitle: Text(tr('comic_progress_bar_desc')),
+                        value: settings.showProgressBar,
+                        onChanged: (v) =>
+                            _set((s) => s.copyWith(showProgressBar: v)),
+                      ),
                     ],
                   ),
                 );

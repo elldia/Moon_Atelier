@@ -7,13 +7,13 @@ import 'package:uuid/uuid.dart';
 
 import '../data/bookmark_store.dart';
 import '../data/comic_settings_controller.dart';
-import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
 import '../models/bookmark.dart';
 import '../models/comic_settings.dart';
 import '../utils/comic_archive.dart';
 import '../widgets/comic_settings_sheet.dart';
 import '../widgets/glass.dart';
+import '../widgets/page_jump_row.dart';
 import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
@@ -388,25 +388,20 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     final count = archive.pageCount;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        ReadingSettingsController.instance,
-        ComicSettingsController.instance,
-      ]),
+      animation: ComicSettingsController.instance,
       builder: (context, _) {
-        final settings = ReadingSettingsController.instance.value;
         final comicSettings = ComicSettingsController.instance.value;
         final narrow = MediaQuery.of(context).size.width < 420;
+        final showBar = comicSettings.showProgressBar && count > 1;
 
-        final progressChip = settings.showProgress
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(
-                  child: Text(
-                    '$_page / $count · ${((_page / count) * 100).round()}%',
-                  ),
-                ),
-              )
-            : const SizedBox.shrink();
+        final progressChip = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Center(
+            child: Text(
+              '$_page / $count · ${((_page / count) * 100).round()}%',
+            ),
+          ),
+        );
 
         return Scaffold(
           backgroundColor: comicSettings.background.color,
@@ -500,6 +495,52 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
               ),
             ),
           ),
+          bottomNavigationBar: showBar && _uiVisible
+              ? SafeArea(
+                  child: SizedBox(
+                    height: 36,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 7,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 6,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 14,
+                                ),
+                              ),
+                              child: Slider(
+                                value: (_page / count).clamp(0.0, 1.0),
+                                onChanged: (ratio) =>
+                                    _jumpToPage((ratio * count).round()),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: PageJumpRow(
+                              onFirst: () => _jumpToPage(1),
+                              onBack10: count > 10
+                                  ? () => _jumpToPage(_page - 10)
+                                  : null,
+                              onForward10: count > 10
+                                  ? () => _jumpToPage(_page + 10)
+                                  : null,
+                              onLast: () => _jumpToPage(count),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : null,
         );
       },
     );

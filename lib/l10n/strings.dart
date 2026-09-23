@@ -109,6 +109,24 @@ const _dict = <String, List<String>>{
     'オフにするとページが即座に切り替わります',
     '关闭后翻页会立即切换',
   ],
+  'comic_progress_bar_section': [
+    '하단 진행 바',
+    'Bottom Progress Bar',
+    '下部の進捗バー',
+    '底部进度条',
+  ],
+  'comic_progress_bar_title': [
+    '진행 바 및 페이지 이동 버튼 표시',
+    'Show progress bar and jump buttons',
+    '進捗バーとページ移動ボタンを表示',
+    '显示进度条和跳转按钮',
+  ],
+  'comic_progress_bar_desc': [
+    '화면 하단에 위치 슬라이더를 표시해요. 100페이지 이상이면 처음으로/10페이지 앞뒤로/끝으로 버튼도 함께 표시돼요',
+    'Shows a position slider at the bottom. Past 100 pages, first/±10/last jump buttons appear alongside it',
+    '画面下部に位置スライダーを表示します。100ページ以上の場合、最初へ/10ページ前後/最後へのボタンも表示されます',
+    '在屏幕底部显示位置滑块。超过100页时,还会显示首页/前后10页/末页跳转按钮',
+  ],
   'comic_open_error': [
     '만화 파일을 여는 중 오류가 발생했습니다: {error}\n이미지가 들어있는 CBZ/ZIP 파일인지 확인해 주세요.',
     'An error occurred opening the comic: {error}\nPlease check that this is a CBZ/ZIP file containing images.',

@@ -8,8 +8,10 @@ import '../l10n/strings.dart';
 /// gets alongside the seek bar, including on mobile.
 class PageJumpRow extends StatelessWidget {
   final VoidCallback onFirst;
-  final VoidCallback onBack10;
-  final VoidCallback onForward10;
+  // Nullable so callers can disable the ±10 buttons (e.g. when there are
+  // too few pages for a 10-page jump to make sense) without hiding them.
+  final VoidCallback? onBack10;
+  final VoidCallback? onForward10;
   final VoidCallback onLast;
 
   const PageJumpRow({
@@ -53,7 +55,7 @@ class PageJumpRow extends StatelessWidget {
 class _JumpIconButton extends StatelessWidget {
   final String tooltip;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _JumpIconButton({
     required this.tooltip,
