@@ -74,6 +74,7 @@ class BackupImporter {
       // restore, since everything else in the file is likely still fine.
       if (bytes == null) continue;
       final lastOpenedRaw = map['lastOpenedAt'] as String?;
+      final modifiedRaw = map['modifiedAt'] as String?;
       await LibraryStore.save(
         Book(
           id: id,
@@ -84,6 +85,7 @@ class BackupImporter {
           lastOpenedAt: lastOpenedRaw != null
               ? DateTime.parse(lastOpenedRaw)
               : null,
+          modifiedAt: modifiedRaw != null ? DateTime.parse(modifiedRaw) : null,
           position: map['position'],
           progress: (map['progress'] as num?)?.toDouble(),
           folderId: map['folderId'] as String?,

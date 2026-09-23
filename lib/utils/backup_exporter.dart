@@ -33,6 +33,7 @@ class BackupExporter {
             'format': b.format.name,
             'addedAt': b.addedAt.toIso8601String(),
             'lastOpenedAt': b.lastOpenedAt?.toIso8601String(),
+            'modifiedAt': b.modifiedAt?.toIso8601String(),
             'position': b.position,
             'progress': b.progress,
             'folderId': b.folderId,
