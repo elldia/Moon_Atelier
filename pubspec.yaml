@@ -104,16 +104,20 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-# Regenerates the Android (legacy + adaptive) and iOS launcher icons from the
-# real app artwork -- `dart run flutter_launcher_icons` after changing this.
-# web/icons/Icon-maskable-1024.png is used (not assets/icon/app_icon.png)
-# because it's full-bleed with no pre-baked rounded corners and no alpha
-# channel: exactly what iOS's App Store validation and Android's adaptive
-# icon masking both expect, and its glyph already sits inside the maskable
-# safe zone so it survives any launcher's icon-shape mask.
+# Regenerates the Android (legacy + adaptive), iOS, and Windows launcher
+# icons from the real app artwork -- `dart run flutter_launcher_icons` after
+# changing this. web/icons/Icon-maskable-1024.png is used (not
+# assets/icon/app_icon.png) because it's full-bleed with no pre-baked
+# rounded corners and no alpha channel: exactly what iOS's App Store
+# validation and Android's adaptive icon masking both expect, and its glyph
+# already sits inside the maskable safe zone so it survives any launcher's
+# icon-shape mask.
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
+  windows:
+    generate: true
+    icon_size: 256
   image_path: "web/icons/Icon-maskable-1024.png"
   adaptive_icon_background: "#8086C0"
   adaptive_icon_foreground: "web/icons/Icon-maskable-1024.png"
