@@ -16,7 +16,7 @@ class WifiTransferServer {
   Future<String?> start() =>
       throw UnsupportedError('Wi-Fi transfer is not supported on the web build.');
 
-  Future<WifiTransferPickedFile> waitForFile() =>
+  Stream<WifiTransferPickedFile> get received =>
       throw UnsupportedError('web stub');
 
   Future<void> stop() => throw UnsupportedError('web stub');

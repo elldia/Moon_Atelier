@@ -418,18 +418,41 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     final picked = await showWifiTransferDialog(context);
-    if (!mounted || picked == null) return;
+    if (!mounted || picked == null || picked.isEmpty) return;
     setState(() => _isPicking = true);
     try {
-      final dotIndex = picked.name.lastIndexOf('.');
-      final extension = dotIndex < 0
-          ? null
-          : picked.name.substring(dotIndex + 1);
-      await _registerPickedBytes(
-        name: picked.name,
-        bytes: picked.bytes,
-        extension: extension,
-      );
+      // A single file behaves like every other source (opens it, or says
+      // it's unsupported); a batch is added quietly and summed up after.
+      final single = picked.length == 1;
+      var added = 0;
+      for (final file in picked) {
+        final dotIndex = file.name.lastIndexOf('.');
+        final extension = dotIndex < 0
+            ? null
+            : file.name.substring(dotIndex + 1);
+        final ok = await _registerPickedBytes(
+          name: file.name,
+          bytes: file.bytes,
+          extension: extension,
+          batch: !single,
+        );
+        if (ok) added++;
+        if (!mounted) return;
+      }
+      if (!single) {
+        final skipped = picked.length - added;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              [
+                tr('wifi_transfer_added', {'count': '$added'}),
+                if (skipped > 0)
+                  tr('wifi_transfer_skipped', {'count': '$skipped'}),
+              ].join(' '),
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -444,11 +467,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// transfer picking: resolve a format from the extension (falling back to
   /// peeking inside a .zip),
   /// then save and open the book. Assumes [_isPicking] is already being
-  /// managed by the caller.
-  Future<void> _registerPickedBytes({
+  /// managed by the caller. With [batch], the book isn't opened and an
+  /// unsupported format isn't reported (the caller sums those up instead).
+  /// Returns whether the book was added.
+  Future<bool> _registerPickedBytes({
     required String name,
     required Uint8List bytes,
     required String? extension,
+    bool batch = false,
   }) async {
     var resolvedName = name;
     var format = Book.formatFromExtension(extension);
@@ -470,18 +496,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
 
     if (format == null || format.kind != widget.kind) {
-      if (!mounted) return;
+      if (!mounted || batch) return false;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(tr('unsupported_format'))));
-      return;
+      return false;
     }
 
     await _addBook(
       name: resolvedName,
       format: format,
       bytes: resolvedBytes,
-      open: true,
+      open: !batch,
     );
+    return true;
   }
 
   Future<void> _addFromClipboard() async {

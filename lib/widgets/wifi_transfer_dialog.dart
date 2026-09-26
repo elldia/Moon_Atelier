@@ -8,10 +8,13 @@ import '../l10n/strings.dart';
 import '../utils/wifi_transfer_server.dart';
 import 'glass.dart';
 
-/// Starts a local upload server and shows its address until either a file
-/// arrives (resolves with it) or the user cancels (resolves with null).
-Future<WifiTransferPickedFile?> showWifiTransferDialog(BuildContext context) {
-  return showDialog<WifiTransferPickedFile>(
+/// Starts a local upload server and shows its address, collecting every file
+/// sent while it's open. Resolves with those files when the user closes it
+/// (empty if nothing arrived), or null if dismissed from outside.
+Future<List<WifiTransferPickedFile>?> showWifiTransferDialog(
+  BuildContext context,
+) {
+  return showDialog<List<WifiTransferPickedFile>>(
     context: context,
     builder: (context) => const _WifiTransferDialog(),
   );
@@ -26,6 +29,8 @@ class _WifiTransferDialog extends StatefulWidget {
 
 class _WifiTransferDialogState extends State<_WifiTransferDialog> {
   final _server = WifiTransferServer();
+  final _files = <WifiTransferPickedFile>[];
+  StreamSubscription<WifiTransferPickedFile>? _subscription;
   String? _address;
   String? _error;
 
@@ -50,9 +55,9 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
         return;
       }
       setState(() => _address = address);
-      final file = await _server.waitForFile();
-      if (!mounted) return;
-      Navigator.of(context).pop(file);
+      _subscription = _server.received.listen((file) {
+        if (mounted) setState(() => _files.add(file));
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = tr('wifi_transfer_failed', {'error': '$e'}));
@@ -62,6 +67,7 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
   @override
   void dispose() {
     unawaited(WakelockPlus.disable());
+    unawaited(_subscription?.cancel());
     unawaited(_server.stop());
     super.dispose();
   }
@@ -91,7 +97,7 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(context).pop(_files),
                     ),
                   ],
                 ),
@@ -99,7 +105,9 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
                 if (_error != null)
                   Text(
                     _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   )
                 else if (_address == null)
                   const Padding(
@@ -113,9 +121,9 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
                     onTap: () async {
                       await Clipboard.setData(ClipboardData(text: _address!));
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(tr('url_copied'))),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(tr('url_copied'))));
                     },
                     child: Container(
                       width: double.infinity,
@@ -157,6 +165,48 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
                       Text(tr('wifi_transfer_waiting')),
                     ],
                   ),
+                  if (_files.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      tr('wifi_transfer_received', {
+                        'count': '${_files.length}',
+                      }),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: size.height * 0.3),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (final file in _files)
+                            ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                              title: Text(
+                                file.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Text(_formatSize(file.bytes.length)),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(_files),
+                      child: Text(
+                        tr('wifi_transfer_import', {
+                          'count': '${_files.length}',
+                        }),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -165,4 +215,10 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
       ),
     );
   }
+}
+
+String _formatSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 }
