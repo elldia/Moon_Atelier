@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:shelf/shelf.dart';
@@ -18,40 +17,38 @@ class WifiTransferPickedFile {
   const WifiTransferPickedFile({required this.name, required this.bytes});
 }
 
-/// A short-lived local HTTP server that shows a one-file upload form at a
-/// random path (so a stray port scan on the LAN can't stumble onto it) and
-/// resolves [waitForFile] once something is uploaded.
+/// A short-lived local HTTP server that shows a one-file upload form and
+/// resolves [waitForFile] once something is uploaded. The address is just
+/// `ip:port` -- no path -- so it's short enough to type by hand; the
+/// tradeoff is that anyone else on the same LAN who guesses the port during
+/// the brief window this is open could also reach the upload form (there's
+/// no other secret in the URL to stop them).
 class WifiTransferServer {
   HttpServer? _server;
   final _completer = Completer<WifiTransferPickedFile>();
-  late final String _token;
 
   /// Starts the server and returns the URL to open on the sending device,
   /// or null if no local network address could be found (e.g. no Wi-Fi).
   Future<String?> start() async {
     final ip = await _localIPv4();
     if (ip == null) return null;
-    _token = _randomToken();
     final handler = const Pipeline().addHandler(_handleRequest);
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, 0);
     _server = server;
-    return 'http://$ip:${server.port}/$_token';
+    return 'http://$ip:${server.port}';
   }
 
   Future<Response> _handleRequest(Request request) async {
     final segments = request.url.pathSegments;
-    if (segments.isEmpty || segments.first != _token) {
-      return Response.notFound('Not found');
-    }
-    if (request.method == 'GET' && segments.length == 1) {
+    if (request.method == 'GET' && segments.isEmpty) {
       return Response.ok(
         _uploadPageHtml,
         headers: {'content-type': 'text/html; charset=utf-8'},
       );
     }
     if (request.method == 'POST' &&
-        segments.length == 2 &&
-        segments[1] == 'upload') {
+        segments.length == 1 &&
+        segments.first == 'upload') {
       final form = request.formData();
       if (form == null) {
         return Response(400, body: 'Not a multipart form');
@@ -82,12 +79,6 @@ class WifiTransferServer {
     await _server?.close(force: true);
     _server = null;
   }
-}
-
-String _randomToken() {
-  final rand = Random.secure();
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  return List.generate(8, (_) => chars[rand.nextInt(chars.length)]).join();
 }
 
 Future<String?> _localIPv4() async {
