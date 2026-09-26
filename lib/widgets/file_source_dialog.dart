@@ -9,19 +9,25 @@ enum FileSource { local, clipboard, dropbox, oneDrive, wifiTransfer, ftp }
 
 /// Shows the "where do you want to add a file from" picker.
 ///
-/// Every onPickX callback is invoked synchronously from inside the tapped
-/// [ListTile]'s `onTap`, before the dialog is popped — not after awaiting
-/// this function's returned Future, which always resolves once the dialog
-/// closes (there's nothing left to report back). That ordering matters for
-/// all but [onPickClipboard]: each of the others opens a native/third-party
-/// picker (a `<input type="file">.click()`, Dropbox/OneDrive's own popup
-/// windows, or this app's own FTP/Wi-Fi-transfer dialog) that browsers only
-/// allow while still inside the same synchronous call stack as a real user
-/// gesture ("transient activation"). Desktop browsers are lenient about a
-/// short async gap, but mobile browsers (iOS Safari in particular) are not —
-/// going through an awaited `Navigator.pop()` + dialog-close animation
-/// first silently drops the picker, which looks like the button doing
-/// nothing / spinning forever.
+/// Every onPickX callback is invoked from inside the tapped [ListTile]'s
+/// `onTap` — not after awaiting this function's returned Future, which
+/// always resolves once the dialog closes (there's nothing left to report
+/// back). [onPickLocal]/[onPickClipboard]/[onPickDropbox]/[onPickOneDrive]
+/// fire *before* the pop: each opens a native/third-party picker (a
+/// `<input type="file">.click()`, or Dropbox/OneDrive's own popup/browser
+/// window) that browsers only allow while still inside the same synchronous
+/// call stack as a real user gesture ("transient activation"). Desktop
+/// browsers are lenient about a short async gap, but mobile browsers (iOS
+/// Safari in particular) are not — going through an awaited
+/// `Navigator.pop()` + dialog-close animation first silently drops the
+/// picker, which looks like the button doing nothing / spinning forever.
+///
+/// [onPickFtp]/[onPickWifiTransfer] fire *after* the pop instead: both open
+/// this app's own `showDialog()`-based browser dialog, which has no
+/// transient-activation concern (it's not a browser popup), but does have
+/// the opposite problem -- calling it before the pop pushes that new dialog
+/// on top of this one, so the subsequent pop takes the new dialog right
+/// back off instead of this one.
 Future<void> showFileSourceDialog(
   BuildContext context, {
   required VoidCallback onPickLocal,
@@ -156,14 +162,20 @@ class _FileSourceDialog extends StatelessWidget {
                               break;
                             case FileSource.ftp:
                               // No transient-activation concern (it's our
-                              // own Flutter dialog, not a browser popup),
-                              // but pop after opening it for consistency.
-                              onPickFtp();
+                              // own Flutter dialog, not a browser popup) --
+                              // and unlike the cases above, popping first
+                              // actually matters here: onPickFtp() opens
+                              // another showDialog() synchronously, which
+                              // pushes straight on top of this one, so
+                              // popping *after* would pop that new dialog
+                              // right back off instead of this one.
                               Navigator.of(context).pop();
+                              onPickFtp();
                               break;
                             case FileSource.wifiTransfer:
-                              onPickWifiTransfer();
+                              // Same reasoning as ftp above.
                               Navigator.of(context).pop();
+                              onPickWifiTransfer();
                               break;
                           }
                         },

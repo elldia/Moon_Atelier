@@ -54,13 +54,6 @@ void main() {
     await tester.tap(find.text('이북 리더'));
     await tester.pumpAndSettle();
 
-    // The empty-state illustration loads via Image.network (so the web
-    // build can fetch it as a static asset outside Flutter's bundle); under
-    // `flutter test` all network requests are sandboxed and fail, which is
-    // expected here and irrelevant to what this test checks — consume it so
-    // it doesn't fail the test.
-    tester.takeException();
-
     expect(find.text('아직 추가된 파일이 없습니다.'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });

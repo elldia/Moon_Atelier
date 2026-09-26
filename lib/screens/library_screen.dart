@@ -1396,8 +1396,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.network(
-                        'icons/sleeping.png',
+                      Image.asset(
+                        'assets/images/sleeping.png',
                         width: 64,
                         height: 64,
                       ),
