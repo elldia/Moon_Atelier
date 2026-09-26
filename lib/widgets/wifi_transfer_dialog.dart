@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../l10n/strings.dart';
 import '../utils/wifi_transfer_server.dart';
@@ -31,6 +32,12 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
   @override
   void initState() {
     super.initState();
+    // A screen timeout mid-upload lets the OS suspend the app's network
+    // socket, which drops the sender's connection partway through (the
+    // symptom: the page loads fine -- a near-instant GET -- but the actual
+    // file upload, slow enough to outlast the screen, gets cut off). Keeps
+    // the screen on for as long as this dialog is up; released in dispose.
+    unawaited(WakelockPlus.enable());
     unawaited(_startServer());
   }
 
@@ -54,6 +61,7 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
 
   @override
   void dispose() {
+    unawaited(WakelockPlus.disable());
     unawaited(_server.stop());
     super.dispose();
   }

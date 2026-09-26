@@ -71,6 +71,11 @@ dependencies:
   # the moonatelier:// redirect. See dropbox_picker_io.dart.
   flutter_web_auth_2: ^5.1.0
   crypto: ^3.0.7
+  # Keeps the screen on while the Wi-Fi transfer dialog is open -- a screen
+  # timeout mid-upload lets the OS suspend the app's network socket,
+  # dropping the sender's connection partway through. See
+  # wifi_transfer_dialog.dart.
+  wakelock_plus: ^1.8.0
 
 dependency_overrides:
   # flutter_html 3.0.0 (via epub_view) calls a private query_selector API
