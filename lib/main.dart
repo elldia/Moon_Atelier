@@ -25,6 +25,7 @@ Future<void> main() async {
   await BookmarkStore.init();
   await HighlightStore.init();
   await FolderStore.init();
+  await FolderStore.assignLegacyKinds();
   await OnboardingStore.init();
   await MarkdownHelpStore.init();
   runApp(const MyApp());

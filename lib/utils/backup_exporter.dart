@@ -22,8 +22,7 @@ class BackupExporter {
       'version': 1,
       'exportedAt': DateTime.now().toIso8601String(),
       'folders': [
-        for (final f in folders)
-          {'id': f.id, 'name': f.name, 'createdAt': f.createdAt.toIso8601String()},
+        for (final f in folders) {'id': f.id, ...f.toMap()},
       ],
       'books': [
         for (final b in books)

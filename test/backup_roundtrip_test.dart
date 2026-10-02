@@ -43,7 +43,12 @@ void main() {
     final modifiedAt = DateTime.utc(2026, 3, 1, 9);
 
     await FolderStore.add(
-      Folder(id: 'folder-1', name: 'My Folder', createdAt: addedAt),
+      Folder(
+        id: 'folder-1',
+        name: 'My Folder',
+        createdAt: addedAt,
+        kind: BookKind.comic,
+      ),
     );
     final book = Book(
       id: 'book-1',
@@ -110,6 +115,7 @@ void main() {
 
     final restoredFolder = FolderStore.loadAll().single;
     expect(restoredFolder.name, 'My Folder');
+    expect(restoredFolder.kind, BookKind.comic);
 
     final restoredBookmark = BookmarkStore.loadAll().single;
     expect(restoredBookmark.label, 'page 42');

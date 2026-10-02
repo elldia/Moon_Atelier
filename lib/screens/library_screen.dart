@@ -94,13 +94,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   bool get _isComic => widget.kind == BookKind.comic;
 
+  /// Only this library's own folders — e-book and comic folders are kept
+  /// apart (see [Folder.kind]).
+  List<Folder> _loadFolders() =>
+      FolderStore.loadAll().where((f) => f.kind == widget.kind).toList();
+
   @override
   void initState() {
     super.initState();
     _books = LibraryStore.loadAll()
         .where((b) => b.format.kind == widget.kind)
         .toList();
-    _folders = FolderStore.loadAll();
+    _folders = _loadFolders();
     final openId = widget.initialOpenBookId;
     if (openId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,7 +150,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
         OnboardingStep(
           targetKey: _trashKey,
-          icon: Icons.delete_outline,
+          icon: Icons.checklist,
           titleKey: 'onb_trash_title',
           descKey: 'onb_trash_desc',
         ),
@@ -178,7 +183,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       _books = LibraryStore.loadAll()
           .where((b) => b.format.kind == widget.kind)
           .toList();
-      _folders = FolderStore.loadAll();
+      _folders = _loadFolders();
     });
   }
 
@@ -581,6 +586,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: _uuid.v4(),
       name: name,
       createdAt: DateTime.now(),
+      kind: widget.kind,
     );
     await FolderStore.add(folder);
     if (!mounted) return;
@@ -628,7 +634,50 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _moveBookToFolder(Book book) async {
-    final chosen = await showDialog<String?>(
+    final chosen = await _pickTargetFolder();
+    if (chosen == null) return;
+    final updated = chosen.isEmpty
+        ? book.copyWith(moveToRoot: true)
+        : book.copyWith(folderId: chosen);
+    await _updateBook(updated);
+  }
+
+  /// Moves every selected file into one folder (or back to the root) at
+  /// once, then leaves selection mode. Selected folders themselves aren't
+  /// moved — folders don't nest.
+  Future<void> _moveSelectedToFolder() async {
+    if (_selectedBookIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('move_select_files_first'))));
+      return;
+    }
+    final chosen = await _pickTargetFolder();
+    if (chosen == null || !mounted) return;
+    final moved = <String, Book>{};
+    for (final book in _books) {
+      if (!_selectedBookIds.contains(book.id)) continue;
+      final updated = chosen.isEmpty
+          ? book.copyWith(moveToRoot: true)
+          : book.copyWith(folderId: chosen);
+      await LibraryStore.save(updated);
+      moved[book.id] = updated;
+    }
+    if (!mounted) return;
+    setState(() {
+      _books = [for (final b in _books) moved[b.id] ?? b];
+      _selectionMode = false;
+      _selectedBookIds.clear();
+      _selectedFolderIds.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(tr('moved_files', {'n': '${moved.length}'}))),
+    );
+  }
+
+  /// Asks which of this library's folders to move into. Resolves to the
+  /// folder's id, '' for the root, or null if dismissed.
+  Future<String?> _pickTargetFolder() {
+    return showDialog<String?>(
       context: context,
       builder: (context) => SimpleDialog(
         title: Text(tr('move_to_folder')),
@@ -657,11 +706,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ],
       ),
     );
-    if (chosen == null) return;
-    final updated = chosen.isEmpty
-        ? book.copyWith(moveToRoot: true)
-        : book.copyWith(folderId: chosen);
-    await _updateBook(updated);
   }
 
   Future<void> _renameBook(Book book) async {
@@ -1257,8 +1301,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
             }
           }),
         ),
+        if (_folders.isNotEmpty)
+          IconButton(
+            tooltip: tr('move_to_folder'),
+            icon: const Icon(Icons.drive_file_move_outline),
+            onPressed: _moveSelectedToFolder,
+          ),
         IconButton(
-          tooltip: tr('select_delete'),
+          tooltip: tr('delete'),
           icon: const Icon(Icons.delete_outline),
           onPressed: _deleteSelected,
         ),
@@ -1328,7 +1378,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       IconButton(
         key: _trashKey,
         tooltip: tr('select_delete'),
-        icon: const Icon(Icons.delete_outline),
+        icon: const Icon(Icons.checklist),
         onPressed: _toggleSelectionMode,
       ),
       IconButton(

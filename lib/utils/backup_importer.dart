@@ -95,11 +95,18 @@ class BackupImporter {
     }
 
     var folderCount = 0;
+    final kindlessFolderIds = <String>[];
     for (final raw in (manifest['folders'] as List? ?? const [])) {
       final map = raw as Map;
-      await FolderStore.add(Folder.fromMap(map['id'] as String, map));
+      final id = map['id'] as String;
+      await FolderStore.add(Folder.fromMap(id, map));
+      if (map['kind'] == null) kindlessFolderIds.add(id);
       folderCount++;
     }
+
+    // Backups made before folders had a kind don't say which library each
+    // folder belongs to; sort them out now that their books are back too.
+    await FolderStore.assignLegacyKinds(kindlessFolderIds);
 
     var bookmarkCount = 0;
     for (final raw in (manifest['bookmarks'] as List? ?? const [])) {
