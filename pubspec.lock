@@ -180,10 +180,9 @@ packages:
   epub_view:
     dependency: "direct main"
     description:
-      name: epub_view
-      sha256: "1e1c77ef7f455c75d77c84de42b3fcf6ec9066251072d4329988ce82513ab0d3"
-      url: "https://pub.dev"
-    source: hosted
+      path: "vendor/epub_view"
+      relative: true
+    source: path
     version: "3.3.0"
   epubx:
     dependency: "direct main"

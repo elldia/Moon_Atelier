@@ -4,12 +4,14 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
+import '../models/comic_settings.dart' show ComicDirection;
 import '../models/reading_settings.dart';
 import '../utils/backup_exporter.dart';
 import '../utils/backup_importer.dart';
 import '../utils/file_pick_watchdog.dart';
 import '../utils/tts_reader.dart';
 import 'glass.dart';
+import 'tap_zone_size_picker.dart';
 
 /// Opens the shared reading-preferences dialog. Safe to call from the
 /// library screen or from any viewer while reading. Changes are staged
@@ -240,6 +242,60 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                         onChanged: (v) =>
                             _set((s) => s.copyWith(showFormatIcon: v)),
                       ),
+                      const SizedBox(height: 20),
+                      _SectionLabel(tr('reading_mode_section')),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final mode in ReadingMode.values)
+                            ChoiceChip(
+                              label: Text(tr('reading_mode_${mode.name}')),
+                              selected: _draft.readingMode == mode,
+                              onSelected: (_) =>
+                                  _set((s) => s.copyWith(readingMode: mode)),
+                            ),
+                        ],
+                      ),
+                      if (_draft.readingMode == ReadingMode.page) ...[
+                        const SizedBox(height: 16),
+                        _SectionLabel(tr('comic_tap_zone_section')),
+                        Text(
+                          tr('reading_tap_zone_desc'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final dir in ComicDirection.values)
+                              ChoiceChip(
+                                label: Text(tr('comic_tap_dir_${dir.name}')),
+                                selected: _draft.tapZoneDirection == dir,
+                                onSelected: (_) => _set(
+                                  (s) => s.copyWith(tapZoneDirection: dir),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TapZoneSizePicker(
+                          direction: _draft.tapZoneDirection,
+                          value: _draft.tapZoneFraction,
+                          onChanged: (v) =>
+                              _set((s) => s.copyWith(tapZoneFraction: v)),
+                        ),
+                        const SizedBox(height: 8),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(tr('comic_animate_title')),
+                          subtitle: Text(tr('reading_animate_desc')),
+                          value: _draft.animatePageTurns,
+                          onChanged: (v) =>
+                              _set((s) => s.copyWith(animatePageTurns: v)),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       _SectionLabel(tr('background_color')),
                       _BackgroundSelector(

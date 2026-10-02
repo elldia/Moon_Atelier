@@ -8,12 +8,14 @@ import 'package:uuid/uuid.dart';
 import '../data/bookmark_store.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
+import '../models/reading_settings.dart';
 import '../models/bookmark.dart';
 import '../utils/epub_text_extractor.dart';
 import '../utils/scroll_ui_visibility.dart';
 import '../utils/tts_reader.dart';
 import '../widgets/glass.dart';
 import '../widgets/page_jump_row.dart';
+import '../widgets/page_turn_layer.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
 
@@ -140,6 +142,25 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
     final total = _approxTotalParagraphs();
     final currentIndex = _epubController.currentValue?.position.index ?? 0;
     _epubController.jumpTo(index: (currentIndex + delta).clamp(0, total));
+  }
+
+  bool get _pageMode =>
+      ReadingSettingsController.instance.value.readingMode == ReadingMode.page;
+
+  /// Scrolls by [delta] pixels for a page turn (see [PageTurnLayer]).
+  void _scrollPageBy(double delta) {
+    _epubController.scrollBy(
+      delta,
+      duration: ReadingSettingsController.instance.value.animatePageTurns
+          ? const Duration(milliseconds: 250)
+          : const Duration(milliseconds: 1),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _toggleUi() {
+    setState(() => _uiVisible = !_uiVisible);
+    _uiVisibility.visible = _uiVisible;
   }
 
   @override
@@ -317,6 +338,18 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
     if (result == null || !mounted) return;
     final cfi = result.position;
     if (cfi is String) _epubController.gotoEpubCfi(cfi);
+  }
+
+  Widget _wrapPageMode(ReadingSettings settings, Widget view) {
+    if (settings.readingMode != ReadingMode.page) return view;
+    return PageTurnLayer(
+      direction: settings.tapZoneDirection,
+      fraction: settings.tapZoneFraction,
+      scrollBy: _scrollPageBy,
+      onToggleUi: _toggleUi,
+      maskColor: settings.background.color,
+      child: view,
+    );
   }
 
   @override
@@ -548,38 +581,54 @@ class _EpubViewerScreenState extends State<EpubViewerScreen> {
           ),
           body: Listener(
             behavior: HitTestBehavior.translucent,
-            onPointerDown: (_) => _uiVisibility.show(),
+            onPointerDown: (_) {
+              if (!_pageMode) _uiVisibility.show();
+            },
             child: NotificationListener<ScrollUpdateNotification>(
               onNotification: (n) {
                 // Scrolling through search results shouldn't hide the app
                 // bar — closing search (the X button) is what hands control
                 // back to the normal scroll-hide behavior.
-                if (n.scrollDelta != null && !_searchActive) {
+                if (n.scrollDelta != null && !_searchActive && !_pageMode) {
                   _uiVisibility.feed(n.scrollDelta!);
                 }
                 return false;
               },
               child: Container(
                 color: settings.background.color,
-                child: EpubView(
-                  controller: _epubController,
-                  builders: EpubViewBuilders<DefaultBuilderOptions>(
-                    options: DefaultBuilderOptions(
-                      textStyle: settings.textStyle,
-                      chapterPadding: EdgeInsets.all(settings.pageMargin),
-                      paragraphPadding: EdgeInsets.only(
-                        left: settings.pageMargin + settings.paragraphIndent,
-                        right: settings.pageMargin,
+                child: _wrapPageMode(
+                  settings,
+                  EpubView(
+                    controller: _epubController,
+                    // Page mode moves only by page turns — see _turnPage.
+                    physics: settings.readingMode == ReadingMode.page
+                        ? const NeverScrollableScrollPhysics()
+                        : null,
+                    // A screen of text laid out above/below, for a page
+                    // turn to measure (see PageTurnLayer).
+                    minCacheExtent: settings.readingMode == ReadingMode.page
+                        ? MediaQuery.sizeOf(context).height * 1.5
+                        : null,
+                    builders: EpubViewBuilders<DefaultBuilderOptions>(
+                      options: DefaultBuilderOptions(
+                        textStyle: settings.textStyle,
+                        chapterPadding: EdgeInsets.all(settings.pageMargin),
+                        paragraphPadding: EdgeInsets.only(
+                          left: settings.pageMargin + settings.paragraphIndent,
+                          right: settings.pageMargin,
+                        ),
                       ),
-                    ),
-                    errorBuilder: (context, error) => Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(tr('epub_open_error', {'error': '$error'})),
+                      errorBuilder: (context, error) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            tr('epub_open_error', {'error': '$error'}),
+                          ),
+                        ),
                       ),
+                      loaderBuilder: (context) =>
+                          const Center(child: CircularProgressIndicator()),
                     ),
-                    loaderBuilder: (context) =>
-                        const Center(child: CircularProgressIndicator()),
                   ),
                 ),
               ),

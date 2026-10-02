@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'comic_settings.dart' show ComicDirection;
+
 /// The app's interface language (independent of reading content, which
 /// stays whatever language the book itself is in).
 enum AppLocale {
@@ -126,6 +128,11 @@ class ReadingBackground {
       presets.firstWhere((p) => p.key == key, orElse: () => presets.first);
 }
 
+/// How the e-book readers move through a book: free scrolling, or turning
+/// one screen at a time by tapping the screen's edges (like the comic
+/// viewer).
+enum ReadingMode { scroll, page }
+
 /// User-adjustable reading preferences, shared by every text-based viewer
 /// (TXT/DOCX/RTF and EPUB) and by the app's overall light/dark theme.
 class ReadingSettings {
@@ -144,6 +151,23 @@ class ReadingSettings {
   final bool showFormatIcon;
   final String? ttsVoiceUri;
   final double ttsRate;
+  final ReadingMode readingMode;
+
+  /// Which edges of the screen turn the page in [ReadingMode.page] — same
+  /// choice (and same enum) as the comic viewer's
+  /// [ComicSettings.tapZoneDirection], kept separately so the two viewers
+  /// can be set up differently.
+  final ComicDirection tapZoneDirection;
+
+  /// Fraction (0.2–0.5) of the screen's width (or height) that counts as
+  /// the previous/next tap zone on each edge in [ReadingMode.page]; the
+  /// middle strip toggles the reading UI. See
+  /// [ComicSettings.tapZoneFraction].
+  final double tapZoneFraction;
+
+  /// Whether page turns in [ReadingMode.page] slide instead of jumping. Off
+  /// by default: on e-ink screens a sliding page leaves ghosting behind.
+  final bool animatePageTurns;
 
   const ReadingSettings({
     required this.font,
@@ -161,6 +185,10 @@ class ReadingSettings {
     required this.showFormatIcon,
     this.ttsVoiceUri,
     this.ttsRate = 1.0,
+    this.readingMode = ReadingMode.scroll,
+    this.tapZoneDirection = ComicDirection.horizontal,
+    this.tapZoneFraction = 0.3,
+    this.animatePageTurns = false,
   });
 
   static const defaults = ReadingSettings(
@@ -179,6 +207,10 @@ class ReadingSettings {
     showFormatIcon: true,
     ttsVoiceUri: null,
     ttsRate: 1.0,
+    readingMode: ReadingMode.scroll,
+    tapZoneDirection: ComicDirection.horizontal,
+    tapZoneFraction: 0.3,
+    animatePageTurns: false,
   );
 
   ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
@@ -214,6 +246,10 @@ class ReadingSettings {
     // look like passing null) — this flag disambiguates the latter.
     bool clearTtsVoice = false,
     double? ttsRate,
+    ReadingMode? readingMode,
+    ComicDirection? tapZoneDirection,
+    double? tapZoneFraction,
+    bool? animatePageTurns,
   }) {
     return ReadingSettings(
       font: font ?? this.font,
@@ -231,6 +267,10 @@ class ReadingSettings {
       showFormatIcon: showFormatIcon ?? this.showFormatIcon,
       ttsVoiceUri: clearTtsVoice ? null : (ttsVoiceUri ?? this.ttsVoiceUri),
       ttsRate: ttsRate ?? this.ttsRate,
+      readingMode: readingMode ?? this.readingMode,
+      tapZoneDirection: tapZoneDirection ?? this.tapZoneDirection,
+      tapZoneFraction: tapZoneFraction ?? this.tapZoneFraction,
+      animatePageTurns: animatePageTurns ?? this.animatePageTurns,
     );
   }
 
@@ -250,6 +290,10 @@ class ReadingSettings {
     'showFormatIcon': showFormatIcon,
     'ttsVoiceUri': ttsVoiceUri,
     'ttsRate': ttsRate,
+    'readingMode': readingMode.name,
+    'tapZoneDirection': tapZoneDirection.name,
+    'tapZoneFraction': tapZoneFraction,
+    'animatePageTurns': animatePageTurns,
   };
 
   factory ReadingSettings.fromMap(Map raw) => ReadingSettings(
@@ -277,5 +321,17 @@ class ReadingSettings {
     showFormatIcon: raw['showFormatIcon'] as bool? ?? true,
     ttsVoiceUri: raw['ttsVoiceUri'] as String?,
     ttsRate: (raw['ttsRate'] as num?)?.toDouble() ?? 1.0,
+    readingMode: ReadingMode.values.firstWhere(
+      (m) => m.name == raw['readingMode'],
+      orElse: () => ReadingMode.scroll,
+    ),
+    tapZoneDirection: ComicDirection.values.firstWhere(
+      (d) => d.name == raw['tapZoneDirection'],
+      orElse: () => ComicDirection.horizontal,
+    ),
+    tapZoneFraction: ((raw['tapZoneFraction'] as num?) ?? 0.3)
+        .toDouble()
+        .clamp(0.2, 0.5),
+    animatePageTurns: raw['animatePageTurns'] as bool? ?? false,
   );
 }

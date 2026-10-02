@@ -60,5 +60,32 @@ void main() {
         ReadingSettings.defaults.showProgress,
       );
     });
+
+    test('toMap/fromMap round-trips the page-turn reading mode', () {
+      final settings = ReadingSettings.defaults.copyWith(
+        readingMode: ReadingMode.page,
+        tapZoneDirection: ComicDirection.vertical,
+        tapZoneFraction: 0.4,
+        animatePageTurns: true,
+      );
+      final restored = ReadingSettings.fromMap(settings.toMap());
+      expect(restored.readingMode, ReadingMode.page);
+      expect(restored.tapZoneDirection, ComicDirection.vertical);
+      expect(restored.tapZoneFraction, 0.4);
+      expect(restored.animatePageTurns, true);
+    });
+
+    test('a save made before page-turn mode existed keeps scrolling', () {
+      final legacyMap = ReadingSettings.defaults.toMap()
+        ..remove('readingMode')
+        ..remove('tapZoneDirection')
+        ..remove('tapZoneFraction')
+        ..remove('animatePageTurns');
+      final restored = ReadingSettings.fromMap(legacyMap);
+      expect(restored.readingMode, ReadingMode.scroll);
+      expect(restored.tapZoneDirection, ComicDirection.horizontal);
+      expect(restored.tapZoneFraction, 0.3);
+      expect(restored.animatePageTurns, false);
+    });
   });
 }

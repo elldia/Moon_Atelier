@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui' show BoxHeightStyle;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:uuid/uuid.dart';
 
 import '../data/bookmark_store.dart';
@@ -15,6 +17,7 @@ import '../utils/scroll_ui_visibility.dart';
 import '../utils/text_chunker.dart';
 import '../utils/tts_reader.dart';
 import '../widgets/page_jump_row.dart';
+import '../widgets/page_turn_layer.dart';
 import '../widgets/reading_settings_sheet.dart';
 import 'saved_items_screen.dart';
 
@@ -129,7 +132,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     // search field and match counter live there, and closing search (the
     // X button) is the only thing that should hand control back to the
     // normal scroll-hide behavior.
-    if (last != null && !_searchActive) {
+    if (last != null && !_searchActive && !_pageMode) {
       _uiVisibility.feed(position.pixels - last);
     }
     _lastScrollPixels = position.pixels;
@@ -139,6 +142,35 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
       widget.onPositionChanged?.call(_scrollController.offset);
       widget.onProgressChanged?.call(_progressNotifier.value);
     });
+  }
+
+  bool get _pageMode =>
+      ReadingSettingsController.instance.value.readingMode == ReadingMode.page;
+
+  /// Scrolls by [delta] pixels for a page turn (see [PageTurnLayer]).
+  void _scrollPageBy(double delta) {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final target = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (ReadingSettingsController.instance.value.animatePageTurns) {
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    } else {
+      _scrollController.jumpTo(target);
+    }
+  }
+
+  void _toggleUi() {
+    setState(() => _uiVisible = !_uiVisible);
+    // Keeps the scroll-mode auto-hide in step, so switching back to scroll
+    // mode doesn't start from a stale visible/hidden state.
+    _uiVisibility.visible = _uiVisible;
   }
 
   void _onSelectionChanged(int index, TextSelection selection) {
@@ -587,9 +619,25 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
 
     return SelectableText.rich(
       TextSpan(children: spans),
+      // Full-line selection boxes: also what page mode measures line
+      // boundaries with (see textLineAt).
+      selectionHeightStyle: BoxHeightStyle.max,
       style: settings.textStyle,
       onSelectionChanged: (selection, cause) =>
           _onSelectionChanged(index, selection),
+    );
+  }
+
+  Widget _wrapPageMode(ReadingSettings settings, Widget list) {
+    if (settings.readingMode != ReadingMode.page) return list;
+    return PageTurnLayer(
+      direction: settings.tapZoneDirection,
+      fraction: settings.tapZoneFraction,
+      scrollBy: _scrollPageBy,
+      onToggleUi: _toggleUi,
+      maskColor: settings.background.color,
+      ignoreTap: () => _selectedChunkIndex != null,
+      child: list,
     );
   }
 
@@ -660,7 +708,9 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
               : null,
           body: Listener(
             behavior: HitTestBehavior.translucent,
-            onPointerDown: (_) => _uiVisibility.show(),
+            onPointerDown: (_) {
+              if (!_pageMode) _uiVisibility.show();
+            },
             child: _chunks.isEmpty
                 ? Center(child: Text(tr('content_not_found')))
                 : Stack(
@@ -673,26 +723,41 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                         data: const TextSelectionThemeData(
                           selectionColor: Color(0x66FF6D00),
                         ),
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.all(settings.pageMargin),
-                          itemCount: _chunks.length,
-                          itemBuilder: (context, index) {
-                            final chunk = _chunks[index];
-                            if (chunk.isEmpty) {
-                              return const SizedBox(height: 16);
-                            }
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.only(bottom: 12),
-                              color: index == _speakingChunkIndex
-                                  ? settings.background.textColor.withValues(
-                                      alpha: 0.08,
-                                    )
-                                  : null,
-                              child: _buildChunk(index, chunk, settings),
-                            );
-                          },
+                        child: _wrapPageMode(
+                          settings,
+                          ListView.builder(
+                            controller: _scrollController,
+                            // Page mode moves only by page turns (taps,
+                            // swipes, wheel, keys) — see _turnPage.
+                            physics: settings.readingMode == ReadingMode.page
+                                ? const NeverScrollableScrollPhysics()
+                                : null,
+                            // Keeps a screen's worth of text laid out above
+                            // and below, so a page turn can measure where
+                            // the lines fall there.
+                            scrollCacheExtent:
+                                settings.readingMode == ReadingMode.page
+                                ? const ScrollCacheExtent.viewport(1.5)
+                                : null,
+                            padding: EdgeInsets.all(settings.pageMargin),
+                            itemCount: _chunks.length,
+                            itemBuilder: (context, index) {
+                              final chunk = _chunks[index];
+                              if (chunk.isEmpty) {
+                                return const SizedBox(height: 16);
+                              }
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.only(bottom: 12),
+                                color: index == _speakingChunkIndex
+                                    ? settings.background.textColor.withValues(
+                                        alpha: 0.08,
+                                      )
+                                    : null,
+                                child: _buildChunk(index, chunk, settings),
+                              );
+                            },
+                          ),
                         ),
                       ),
                       if (_selectedChunkIndex != null)

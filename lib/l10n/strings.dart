@@ -731,6 +731,21 @@ const _dict = <String, List<String>>{
     'リーダー画面の上部に現在位置 / 全体を表示します',
     '在阅读器顶部显示当前位置 / 总长度',
   ],
+  'reading_mode_section': ['읽기 방식', 'Reading Mode', '読み方', '阅读方式'],
+  'reading_mode_scroll': ['스크롤', 'Scroll', 'スクロール', '滚动'],
+  'reading_mode_page': ['쪽 넘김', 'Page Turn', 'ページめくり', '翻页'],
+  'reading_tap_zone_desc': [
+    '화면 가장자리를 탭하거나 밀어서 이전/다음 쪽으로 넘깁니다. 가운데를 탭하면 화면 UI가 보이거나 숨겨집니다.',
+    'Tap or swipe an edge of the screen to go to the previous/next page. Tapping the middle shows or hides the UI.',
+    '画面の端をタップまたはスワイプすると前/次のページに移動します。中央をタップするとUIの表示/非表示が切り替わります。',
+    '轻触或滑动屏幕边缘可翻到上一页/下一页,轻触中间可显示或隐藏界面。',
+  ],
+  'reading_animate_desc': [
+    '전자잉크 이북리더에서는 끄는 것을 권장해요',
+    'Best left off on e-ink readers',
+    '電子ペーパー端末ではオフをおすすめします',
+    '电子墨水阅读器建议关闭',
+  ],
   'background_color': ['배경색', 'Background Color', '背景色', '背景色'],
   'font_section': ['글꼴', 'Font', 'フォント', '字体'],
   'font_delay_hint': [

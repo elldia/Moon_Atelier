@@ -101,6 +101,12 @@ dependency_overrides:
   # vendor/epubx/lib/src/readers/book_cover_reader.dart.
   epubx:
     path: vendor/epubx
+  # Vendored copy of epub_view 3.3.0 with one patch: its internal
+  # ScrollablePositionedList had no way to scroll by a pixel offset or to
+  # disable drag scrolling, both needed by the e-book page-turn mode. See
+  # EpubController.scrollBy and EpubView.physics.
+  epub_view:
+    path: vendor/epub_view
 
 dev_dependencies:
   flutter_test:
