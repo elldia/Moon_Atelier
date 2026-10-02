@@ -271,26 +271,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     setState(() => _isPicking = true);
     try {
-      final picked =
-          await chooseDropboxFile(
-            context: context,
-            extensions: _isComic
-                ? ['.cbz', '.zip']
-                : [
-                    '.epub',
-                    '.pdf',
-                    '.txt',
-                    '.docx',
-                    '.rtf',
-                    '.hwpx',
-                    '.musicxml',
-                    '.mxl',
-                    '.zip',
-                  ],
-          ).timeout(
-            const Duration(seconds: 90),
-            onTimeout: () => throw TimeoutException('Dropbox chooser'),
-          );
+      final picked = await chooseDropboxFile(
+        context: context,
+        extensions: _isComic
+            ? ['.cbz', '.zip']
+            : [
+                '.epub',
+                '.pdf',
+                '.txt',
+                '.docx',
+                '.rtf',
+                '.hwpx',
+                '.musicxml',
+                '.mxl',
+                '.zip',
+              ],
+      ).pickerTimeout('Dropbox chooser');
       if (picked == null) {
         return;
       }
@@ -298,7 +294,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       final response = await http
           .get(Uri.parse(picked.link))
           .timeout(
-            const Duration(seconds: 30),
+            const Duration(minutes: 5),
             onTimeout: () => throw TimeoutException('downloading from Dropbox'),
           );
       if (response.statusCode != 200) {
@@ -337,16 +333,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     setState(() => _isPicking = true);
     try {
-      final picked =
-          await chooseOneDriveFile(
-            filter: _isComic
-                ? '.cbz,.zip'
-                : '.epub,.pdf,.txt,.docx,.rtf,.hwpx,.musicxml,.mxl,.zip',
-            redirectUri: Uri.base.toString(),
-          ).timeout(
-            const Duration(seconds: 90),
-            onTimeout: () => throw TimeoutException('OneDrive picker'),
-          );
+      final picked = await chooseOneDriveFile(
+        context: context,
+        extensions: _isComic
+            ? ['.cbz', '.zip']
+            : [
+                '.epub',
+                '.pdf',
+                '.txt',
+                '.docx',
+                '.rtf',
+                '.hwpx',
+                '.musicxml',
+                '.mxl',
+                '.zip',
+              ],
+      ).pickerTimeout('OneDrive picker');
       if (picked == null) {
         return;
       }
@@ -354,7 +356,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       final response = await http
           .get(Uri.parse(picked.downloadUrl))
           .timeout(
-            const Duration(seconds: 30),
+            const Duration(minutes: 5),
             onTimeout: () =>
                 throw TimeoutException('downloading from OneDrive'),
           );
@@ -1646,4 +1648,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
       },
     );
   }
+}
+
+extension _PickerTimeout<T> on Future<T> {
+  /// Guards the web builds' Dropbox/OneDrive pickers -- third-party popups
+  /// that can hang without ever reporting back. The native builds' sign-in
+  /// and folder browsing are the user's own in-app steps (a password or
+  /// two-step check alone can take a while), so they get no time limit.
+  Future<T> pickerTimeout(String what) => kIsWeb
+      ? timeout(
+          const Duration(seconds: 90),
+          onTimeout: () => throw TimeoutException(what),
+        )
+      : this;
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+  OneDrive sign-in lands here (the web build's redirect URI, registered on
+  the "Moon Atelier" app as a Single-page application). Hands the result
+  back to the app window that opened the sign-in popup, then closes — see
+  lib/utils/onedrive_picker.dart and flutter_web_auth_2's web docs.
+-->
+<meta charset="utf-8">
+<title>Moon Atelier</title>
+<p>로그인이 끝났어요. 이 창이 자동으로 닫히지 않으면 닫아 주세요.</p>
+<script>
+  (function () {
+    const message = { 'flutter-web-auth-2': window.location.href };
+    if (window.opener) {
+      window.opener.postMessage(message, window.location.origin);
+      window.close();
+    } else if (window.parent && window.parent !== window) {
+      window.parent.postMessage(message, window.location.origin);
+    } else {
+      // Sign-in pages can cut the popup off from its opener; the app also
+      // polls this key.
+      localStorage.setItem('flutter-web-auth-2', window.location.href);
+      window.close();
+    }
+  })();
+</script>

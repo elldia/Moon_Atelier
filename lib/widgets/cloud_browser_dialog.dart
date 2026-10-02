@@ -3,40 +3,74 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
-import '../utils/dropbox_picker_io.dart';
 import 'glass.dart';
 
-/// Shows the post-auth Dropbox folder browser -- [session] is already
-/// signed in by the time this opens (see `chooseDropboxFile` in
-/// dropbox_picker_io.dart). Returns the picked file's [DropboxFileResult],
-/// or null if the user closes the dialog without picking one.
-Future<DropboxFileResult?> showDropboxBrowserDialog(
+/// One entry (file or folder) in a cloud drive listing. [id] is whatever
+/// the service addresses it by — a lowercase path for Dropbox, an item id
+/// for OneDrive.
+class CloudEntry {
+  final String id;
+  final String name;
+  final bool isDirectory;
+  final int? size;
+
+  const CloudEntry({
+    required this.id,
+    required this.name,
+    required this.isDirectory,
+    this.size,
+  });
+}
+
+/// A signed-in cloud drive the browser dialog can walk through.
+abstract class CloudDriveSource {
+  /// Shown as the dialog's title.
+  String get title;
+
+  /// Lists the folder [folderId] (null for the drive's root), folders
+  /// first, each group alphabetical.
+  Future<List<CloudEntry>> list(String? folderId);
+
+  /// A short-lived URL that downloads [file] with a plain, unauthenticated
+  /// GET — so the library's shared download step needs no session.
+  Future<String> downloadUrl(CloudEntry file);
+}
+
+/// What the user picked: the file's name and a download URL for it.
+typedef CloudPick = ({String name, String url});
+
+/// Shows a folder browser over [source] (already signed in), listing
+/// folders plus only the files ending in one of [extensions] (all files
+/// when null/empty). Resolves with the picked file, or null if the dialog
+/// is closed without picking one.
+Future<CloudPick?> showCloudBrowserDialog(
   BuildContext context, {
-  required DropboxSession session,
+  required CloudDriveSource source,
   List<String>? extensions,
 }) {
-  return showDialog<DropboxFileResult>(
+  return showDialog<CloudPick>(
     context: context,
     builder: (context) =>
-        _DropboxBrowserDialog(session: session, extensions: extensions),
+        _CloudBrowserDialog(source: source, extensions: extensions),
   );
 }
 
-class _DropboxBrowserDialog extends StatefulWidget {
-  final DropboxSession session;
+class _CloudBrowserDialog extends StatefulWidget {
+  final CloudDriveSource source;
   final List<String>? extensions;
 
-  const _DropboxBrowserDialog({required this.session, this.extensions});
+  const _CloudBrowserDialog({required this.source, this.extensions});
 
   @override
-  State<_DropboxBrowserDialog> createState() => _DropboxBrowserDialogState();
+  State<_CloudBrowserDialog> createState() => _CloudBrowserDialogState();
 }
 
-class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
-  List<DropboxEntry> _entries = const [];
-  // Dropbox's own root path is '' (not '/'); every non-root path it
-  // returns already starts with '/' and never ends with one.
-  String _currentPath = '';
+class _CloudBrowserDialogState extends State<_CloudBrowserDialog> {
+  List<CloudEntry> _entries = const [];
+  // The folders opened from the root, in order — the last is the one
+  // shown. Kept as a stack (not a path to split) since OneDrive addresses
+  // folders by id, not by path.
+  final _trail = <CloudEntry>[];
   bool _isBusy = true;
   String? _error;
 
@@ -46,7 +80,7 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
     unawaited(_refreshListing());
   }
 
-  bool _matchesFilter(DropboxEntry entry) {
+  bool _matchesFilter(CloudEntry entry) {
     final exts = widget.extensions;
     if (exts == null || exts.isEmpty) return true;
     final lower = entry.name.toLowerCase();
@@ -59,7 +93,9 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
       _error = null;
     });
     try {
-      final entries = await widget.session.list(_currentPath);
+      final entries = await widget.source.list(
+        _trail.isEmpty ? null : _trail.last.id,
+      );
       if (!mounted) return;
       setState(() => _entries = entries);
     } catch (e) {
@@ -70,33 +106,30 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
     }
   }
 
-  Future<void> _openFolder(String path) async {
-    setState(() => _currentPath = path);
+  Future<void> _openFolder(CloudEntry folder) async {
+    setState(() => _trail.add(folder));
     await _refreshListing();
   }
 
   Future<void> _openParent() async {
-    final segments = _currentPath.split('/')..removeWhere((s) => s.isEmpty);
-    segments.removeLast();
-    await _openFolder(segments.isEmpty ? '' : '/${segments.join('/')}');
+    setState(() => _trail.removeLast());
+    await _refreshListing();
   }
 
-  Future<void> _pickFile(DropboxEntry entry) async {
+  Future<void> _pickFile(CloudEntry entry) async {
     setState(() {
       _isBusy = true;
       _error = null;
     });
     try {
-      final link = await widget.session
-          .temporaryLink(entry.pathLower)
+      final url = await widget.source
+          .downloadUrl(entry)
           .timeout(
             const Duration(seconds: 30),
-            onTimeout: () => throw TimeoutException('Dropbox temporary link'),
+            onTimeout: () => throw TimeoutException('cloud download link'),
           );
       if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pop(DropboxFileResult(name: entry.name, link: link));
+      Navigator.of(context).pop((name: entry.name, url: url));
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = tr('ftp_action_failed', {'error': '$e'}));
@@ -117,6 +150,7 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
     final visibleEntries = _entries
         .where((e) => e.isDirectory || _matchesFilter(e))
         .toList();
+    final path = '/${_trail.map((f) => f.name).join('/')}';
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -133,10 +167,11 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      tr('source_dropbox'),
+                      widget.source.title,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     IconButton(
+                      tooltip: tr('close'),
                       icon: const Icon(Icons.close),
                       onPressed: _isBusy
                           ? null
@@ -165,14 +200,15 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
                 child: Row(
                   children: [
                     IconButton(
+                      tooltip: tr('back'),
                       icon: const Icon(Icons.arrow_upward),
-                      onPressed: _isBusy || _currentPath.isEmpty
+                      onPressed: _isBusy || _trail.isEmpty
                           ? null
                           : _openParent,
                     ),
                     Expanded(
                       child: Text(
-                        _currentPath.isEmpty ? '/' : _currentPath,
+                        path,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -200,7 +236,7 @@ class _DropboxBrowserDialogState extends State<_DropboxBrowserDialog> {
                             onTap: _isBusy
                                 ? null
                                 : () => entry.isDirectory
-                                      ? _openFolder(entry.pathLower)
+                                      ? _openFolder(entry)
                                       : _pickFile(entry),
                           );
                         },

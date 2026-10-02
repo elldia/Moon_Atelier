@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 
-import '../widgets/dropbox_browser_dialog.dart';
+import '../l10n/strings.dart';
+import '../widgets/cloud_browser_dialog.dart';
+import 'pkce.dart';
 
 /// A file the user picked from their Dropbox -- [link] is a short-lived
 /// (per Dropbox's docs, ~4 hour) direct-download URL from
@@ -52,26 +52,14 @@ Future<DropboxFileResult?> chooseDropboxFile({
   if (!isDropboxChooserAvailable) return null;
   final session = await DropboxSession.authenticate();
   if (session == null || !context.mounted) return null;
-  return showDropboxBrowserDialog(
+  final picked = await showCloudBrowserDialog(
     context,
-    session: session,
+    source: session,
     extensions: extensions,
   );
-}
-
-/// One entry (file or folder) returned by Dropbox's `files/list_folder`.
-class DropboxEntry {
-  final String name;
-  final String pathLower;
-  final bool isDirectory;
-  final int? size;
-
-  const DropboxEntry({
-    required this.name,
-    required this.pathLower,
-    required this.isDirectory,
-    this.size,
-  });
+  return picked == null
+      ? null
+      : DropboxFileResult(name: picked.name, link: picked.url);
 }
 
 /// An authenticated Dropbox API session: just a bearer token, since every
@@ -80,15 +68,17 @@ class DropboxEntry {
 /// only for this dialog's lifetime), so re-picking from Dropbox later
 /// means signing in again, the same tradeoff FTP's un-remembered
 /// credentials already make.
-class DropboxSession {
+/// Entries are addressed by their lowercase path (`id`), the root by ''.
+class DropboxSession implements CloudDriveSource {
   final String _token;
   DropboxSession._(this._token);
 
+  @override
+  String get title => tr('source_dropbox');
+
   static Future<DropboxSession?> authenticate() async {
-    final verifier = _generateCodeVerifier();
-    final challenge = base64Url
-        .encode(sha256.convert(utf8.encode(verifier)).bytes)
-        .replaceAll('=', '');
+    final verifier = generateCodeVerifier();
+    final challenge = codeChallengeFor(verifier);
     final authorizeUrl = Uri.https('www.dropbox.com', '/oauth2/authorize', {
       'client_id': dropboxAppKey,
       'response_type': 'code',
@@ -134,11 +124,13 @@ class DropboxSession {
     'Content-Type': 'application/json',
   };
 
-  /// Lists [path] (`''` for the root), directories first, both groups
-  /// case-insensitively alphabetical -- mirroring [FtpSession.list].
-  /// Follows `has_more`/cursor pagination internally so a large folder
-  /// still comes back as one complete list.
-  Future<List<DropboxEntry>> list(String path) async {
+  /// Lists [folderId] (a lowercase path; null for the root), directories
+  /// first, both groups case-insensitively alphabetical -- mirroring
+  /// [FtpSession.list]. Follows `has_more`/cursor pagination internally so
+  /// a large folder still comes back as one complete list.
+  @override
+  Future<List<CloudEntry>> list(String? folderId) async {
+    final path = folderId ?? '';
     var response = await http.post(
       Uri.https('api.dropboxapi.com', '/2/files/list_folder'),
       headers: _jsonHeaders,
@@ -166,16 +158,16 @@ class DropboxSession {
     return entries;
   }
 
-  List<DropboxEntry> _parseEntries(List raw) {
-    final result = <DropboxEntry>[];
+  List<CloudEntry> _parseEntries(List raw) {
+    final result = <CloudEntry>[];
     for (final e in raw) {
       final map = e as Map;
       final tag = map['.tag'] as String?;
       if (tag != 'folder' && tag != 'file') continue;
       result.add(
-        DropboxEntry(
+        CloudEntry(
+          id: map['path_lower'] as String,
           name: map['name'] as String,
-          pathLower: map['path_lower'] as String,
           isDirectory: tag == 'folder',
           size: tag == 'file' ? (map['size'] as num?)?.toInt() : null,
         ),
@@ -184,15 +176,16 @@ class DropboxSession {
     return result;
   }
 
-  /// A short-lived, unauthenticated direct-download link for [path] --
+  /// A short-lived, unauthenticated direct-download link for [file] --
   /// what lets [DropboxFileResult.link] be a plain `http.get` on the
   /// caller's side instead of every downloader needing this session's
   /// bearer token.
-  Future<String> temporaryLink(String path) async {
+  @override
+  Future<String> downloadUrl(CloudEntry file) async {
     final response = await http.post(
       Uri.https('api.dropboxapi.com', '/2/files/get_temporary_link'),
       headers: _jsonHeaders,
-      body: jsonEncode({'path': path}),
+      body: jsonEncode({'path': file.id}),
     );
     if (response.statusCode != 200) {
       throw Exception(
@@ -202,17 +195,4 @@ class DropboxSession {
     final data = jsonDecode(response.body) as Map;
     return data['link'] as String;
   }
-}
-
-const _codeVerifierChars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-
-/// A random 64-character PKCE code verifier (RFC 7636 allows 43-128), from
-/// the RFC's own unreserved-character alphabet.
-String _generateCodeVerifier() {
-  final rand = Random.secure();
-  return List.generate(
-    64,
-    (_) => _codeVerifierChars[rand.nextInt(_codeVerifierChars.length)],
-  ).join();
 }
