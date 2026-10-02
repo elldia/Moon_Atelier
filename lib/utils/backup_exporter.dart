@@ -12,7 +12,9 @@ import '../data/library_store.dart';
 /// folders, bookmarks and highlights -- into a single zip: `manifest.json`
 /// (everything but the raw book bytes) plus one `books/<id>.bin` per book.
 class BackupExporter {
-  static Uint8List build() {
+  /// Reads every book's contents from storage, so this is async; the
+  /// whole archive is still built in memory.
+  static Future<Uint8List> build() async {
     final books = LibraryStore.loadAll();
     final folders = FolderStore.loadAll();
     final bookmarks = BookmarkStore.loadAll();
@@ -69,9 +71,11 @@ class BackupExporter {
       ArchiveFile('manifest.json', manifestBytes.length, manifestBytes),
     );
     for (final b in books) {
-      archive.addFile(
-        ArchiveFile('books/${b.id}.bin', b.bytes.length, b.bytes),
-      );
+      final bytes = await LibraryStore.loadBytes(b.id);
+      // A book whose contents went missing can't be restored anyway; leave
+      // it out (the restore skips manifest entries without a .bin too).
+      if (bytes == null) continue;
+      archive.addFile(ArchiveFile('books/${b.id}.bin', bytes.length, bytes));
     }
     return ZipEncoder().encodeBytes(archive);
   }

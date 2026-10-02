@@ -12,6 +12,7 @@ import '../models/book.dart';
 import '../models/bookmark.dart';
 import '../models/folder.dart';
 import '../models/highlight.dart';
+import 'text_decoder.dart';
 
 class BackupRestoreSummary {
   final int books;
@@ -75,12 +76,13 @@ class BackupImporter {
       if (bytes == null) continue;
       final lastOpenedRaw = map['lastOpenedAt'] as String?;
       final modifiedRaw = map['modifiedAt'] as String?;
-      await LibraryStore.save(
+      final format = BookFormat.values.byName(map['format'] as String);
+      final content = Uint8List.fromList(bytes);
+      await LibraryStore.add(
         Book(
           id: id,
           name: map['name'] as String,
-          format: BookFormat.values.byName(map['format'] as String),
-          bytes: Uint8List.fromList(bytes),
+          format: format,
           addedAt: DateTime.parse(map['addedAt'] as String),
           lastOpenedAt: lastOpenedRaw != null
               ? DateTime.parse(lastOpenedRaw)
@@ -89,7 +91,11 @@ class BackupImporter {
           position: map['position'],
           progress: (map['progress'] as num?)?.toDouble(),
           folderId: map['folderId'] as String?,
+          charCount: format == BookFormat.txt
+              ? decodeTextBytes(content).length
+              : null,
         ),
+        content,
       );
       bookCount++;
     }

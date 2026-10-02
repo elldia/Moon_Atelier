@@ -70,7 +70,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   Future<void> _downloadBackup() async {
     setState(() => _backingUp = true);
     try {
-      final bytes = await Future(BackupExporter.build);
+      final bytes = await BackupExporter.build();
       if (!mounted) return;
       final uri = await FilePicker.saveFile(
         fileName: BackupExporter.suggestedFileName(),
@@ -93,7 +93,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
   Future<void> _emailBackup() async {
     setState(() => _emailing = true);
     try {
-      final bytes = await Future(BackupExporter.build);
+      final bytes = await BackupExporter.build();
       if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(

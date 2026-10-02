@@ -549,14 +549,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: _uuid.v4(),
       name: name,
       format: format,
-      bytes: bytes,
       addedAt: DateTime.now(),
       folderId: _currentFolderId,
+      charCount: format == BookFormat.txt
+          ? decodeTextBytes(bytes).length
+          : null,
     );
-    await LibraryStore.save(book);
+    await LibraryStore.add(book, bytes);
     if (!mounted) return;
     setState(() => _books = [book, ..._books]);
-    if (open) _openBook(book);
+    if (open) unawaited(_openBook(book, bytes: bytes));
   }
 
   Future<void> _createFolder() async {
@@ -826,21 +828,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// Returns whether the note was actually saved (false if the user backed
   /// out of the editor without confirming).
   Future<bool> _editNote(Book book) async {
+    final bytes = await LibraryStore.loadBytes(book.id);
+    if (!mounted) return false;
     final result = await Navigator.of(context).push<NoteResult>(
       MaterialPageRoute(
         builder: (_) => NoteEditorScreen(
           initialTitle: book.name,
-          initialContent: decodeTextBytes(book.bytes),
+          initialContent: bytes == null ? '' : decodeTextBytes(bytes),
         ),
       ),
     );
     if (!mounted || result == null) return false;
+    await LibraryStore.saveBytes(
+      book.id,
+      Uint8List.fromList(utf8.encode(result.content)),
+    );
     await _updateBook(
-      book.copyWith(
-        name: result.title,
-        bytes: Uint8List.fromList(utf8.encode(result.content)),
-        modifiedAt: DateTime.now(),
-      ),
+      book.copyWith(name: result.title, modifiedAt: DateTime.now()),
     );
     return true;
   }
@@ -953,7 +957,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
-  void _openBook(Book book) {
+  /// Opens [book] in its viewer, reading its contents from storage unless
+  /// they're passed in as [bytes] (a book that was only just added).
+  Future<void> _openBook(Book book, {Uint8List? bytes}) async {
+    final content = bytes ?? await LibraryStore.loadBytes(book.id);
+    if (!mounted) return;
+    if (content == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr('book_content_missing'))));
+      return;
+    }
     final opened = book.copyWith(lastOpenedAt: DateTime.now());
     _updateBook(opened);
 
@@ -969,7 +983,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => EpubViewerScreen(
               bookId: book.id,
               title: book.name,
-              bytes: ensureFullEpubToc(book.bytes),
+              bytes: ensureFullEpubToc(content),
               initialCfi: book.position as String?,
               onPositionChanged: (cfi) {
                 current = current.copyWith(position: cfi);
@@ -989,7 +1003,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => PdfViewerScreen(
               bookId: book.id,
               title: book.name,
-              bytes: book.bytes,
+              bytes: content,
               initialPage: book.position as int?,
               onPositionChanged: (page) {
                 current = current.copyWith(position: page);
@@ -1009,7 +1023,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => TextViewerScreen(
               bookId: book.id,
               title: book.name,
-              content: decodeTextBytes(book.bytes),
+              content: decodeTextBytes(content),
               initialOffset: (book.position as num?)?.toDouble(),
               onPositionChanged: (offset) {
                 current = current.copyWith(position: offset);
@@ -1027,6 +1041,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _openExtractedText(
           book,
           opened,
+          content,
           extract: extractDocxText,
           formatLabel: 'DOCX',
         );
@@ -1035,6 +1050,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _openExtractedText(
           book,
           opened,
+          content,
           extract: extractRtfText,
           formatLabel: 'RTF',
         );
@@ -1043,13 +1059,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _openExtractedText(
           book,
           opened,
+          content,
           extract: extractHwpxText,
           formatLabel: 'HWPX',
         );
         break;
       case BookFormat.musicXml:
         try {
-          final xml = extractMusicXmlText(book.bytes);
+          final xml = extractMusicXmlText(content);
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>
@@ -1072,7 +1089,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => ComicViewerScreen(
               bookId: book.id,
               title: book.name,
-              bytes: book.bytes,
+              bytes: content,
               initialPage: book.position as int?,
               onPositionChanged: (page) {
                 current = current.copyWith(position: page);
@@ -1092,7 +1109,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             builder: (_) => NoteViewerScreen(
               bookId: book.id,
               title: book.name,
-              content: decodeTextBytes(book.bytes),
+              content: decodeTextBytes(content),
               onEdit: () async {
                 final saved = await _editNote(book);
                 // Pops this note's viewer back to the library list once the
@@ -1112,13 +1129,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   void _openExtractedText(
     Book book,
-    Book opened, {
+    Book opened,
+    Uint8List bytes, {
     required String Function(Uint8List bytes) extract,
     required String formatLabel,
   }) {
     var current = opened;
     try {
-      final text = extract(book.bytes);
+      final text = extract(bytes);
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => TextViewerScreen(
@@ -1189,8 +1207,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final progress = book.progress;
     if (progress == null) return null;
     final percent = (progress * 100).round();
-    if (book.format == BookFormat.txt) {
-      final total = decodeTextBytes(book.bytes).length;
+    final total = book.charCount;
+    if (book.format == BookFormat.txt && total != null) {
       final current = (progress * total).round();
       return tr('char_progress', {
         'current': _formatCount(current),

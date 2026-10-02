@@ -32,15 +32,15 @@ void main() {
   }
 
   Future<void> addBook(String id, BookFormat format, String? folderId) =>
-      LibraryStore.save(
+      LibraryStore.add(
         Book(
           id: id,
           name: id,
           format: format,
-          bytes: Uint8List(1),
           addedAt: DateTime.utc(2026),
           folderId: folderId,
         ),
+        Uint8List(1),
       );
 
   test('legacy folders are split into e-book and comic folders', () async {

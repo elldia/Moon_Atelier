@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 enum BookFormat { epub, pdf, txt, docx, rtf, hwpx, musicXml, note, comic }
 
 /// Which top-level library a [BookFormat] belongs to — the e-book reader or
@@ -16,7 +14,6 @@ class Book {
   final String id;
   final String name;
   final BookFormat format;
-  final Uint8List bytes;
   final DateTime addedAt;
   final DateTime? lastOpenedAt;
 
@@ -39,22 +36,26 @@ class Book {
   /// The folder this book is filed under, or null for the library root.
   final String? folderId;
 
+  /// A TXT's length in characters, for the library list's "n / total"
+  /// progress -- worked out once when the book is added, so the list never
+  /// has to load and decode the file itself. Null for other formats.
+  final int? charCount;
+
   const Book({
     required this.id,
     required this.name,
     required this.format,
-    required this.bytes,
     required this.addedAt,
     this.lastOpenedAt,
     this.modifiedAt,
     this.position,
     this.progress,
     this.folderId,
+    this.charCount,
   });
 
   Book copyWith({
     String? name,
-    Uint8List? bytes,
     DateTime? lastOpenedAt,
     DateTime? modifiedAt,
     Object? position,
@@ -66,13 +67,13 @@ class Book {
       id: id,
       name: name ?? this.name,
       format: format,
-      bytes: bytes ?? this.bytes,
       addedAt: addedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
       modifiedAt: modifiedAt ?? this.modifiedAt,
       position: position ?? this.position,
       progress: progress ?? this.progress,
       folderId: moveToRoot ? null : (folderId ?? this.folderId),
+      charCount: charCount,
     );
   }
 

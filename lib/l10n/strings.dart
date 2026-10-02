@@ -166,6 +166,12 @@ const _dict = <String, List<String>>{
     'フォルダなし(ルート)',
     '无文件夹(根目录)',
   ],
+  'book_content_missing': [
+    '책 파일을 찾을 수 없어요. 삭제한 뒤 다시 등록해 주세요.',
+    "This book's file is missing. Delete it and add it again.",
+    '本のファイルが見つかりません。削除してから登録し直してください。',
+    '找不到书籍文件。请删除后重新添加。',
+  ],
   'unsupported_format': [
     '지원하지 않는 파일 형식입니다.',
     'Unsupported file format.',
