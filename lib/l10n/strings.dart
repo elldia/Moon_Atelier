@@ -527,7 +527,7 @@ const _dict = <String, List<String>>{
     '此平台不支持Wi-Fi传输。',
   ],
   'wifi_transfer_instructions': [
-    '같은 Wi-Fi에 연결된 PC나 폰의 브라우저에서 아래 주소로 접속해 파일을 보내주세요. 여러 개를 보낸 뒤 가져오기를 누르면 됩니다.',
+    '같은 Wi-Fi에 연결된 PC나 핸드폰의 브라우저에서 아래 주소로 접속해 파일을 보내주세요. 여러 개를 보낸 뒤 가져오기를 누르면 됩니다.',
     'From a browser on a PC or phone on the same Wi-Fi, open the address below and send files. Tap Import when you are done.',
     '同じWi-Fiに接続されたPCやスマホのブラウザで下のアドレスにアクセスし、ファイルを送信してください。送り終えたら取り込みをタップしてください。',
     '在同一Wi-Fi下的电脑或手机浏览器中打开下面的地址并发送文件。发送完成后点击导入。',
@@ -576,9 +576,14 @@ const _dict = <String, List<String>>{
     '已跳过 {count} 个不支持的文件。',
   ],
   // Wi-Fi transfer upload page (shown in the sender's browser)
-  'wifi_page_title': ['ebk로 파일 보내기', 'Send files to ebk', 'ebkにファイルを送る', '发送文件到 ebk'],
+  'wifi_page_title': [
+    '달빛서재로 파일 보내기',
+    'Send files to Moon Atelier',
+    'Moon Atelierにファイルを送る',
+    '发送文件到 Moon Atelier',
+  ],
   'wifi_page_subtitle': [
-    '보낸 파일은 폰의 와이파이 전송 창에 바로 나타납니다.',
+    '보낸 파일은 핸드폰의 와이파이 전송 창에 바로 나타납니다.',
     'Files you send show up right away in the Wi-Fi Transfer window on the phone.',
     '送ったファイルはスマホのWi-Fi転送画面にすぐ表示されます。',
     '发送的文件会立即显示在手机的Wi-Fi传输窗口中。',
@@ -612,20 +617,26 @@ const _dict = <String, List<String>>{
   'wifi_page_status_waiting': ['대기 중', 'Waiting', '待機中', '等待中'],
   'wifi_page_status_done': ['완료', 'Done', '完了', '完成'],
   'wifi_page_status_failed': [
-    '실패 · 폰의 전송 창을 확인하세요',
+    '실패 · 핸드폰의 전송 창을 확인하세요',
     'Failed · check the phone',
     '失敗 · スマホの画面を確認',
     '失败 · 请检查手机',
   ],
+  'wifi_page_delete_failed': [
+    '삭제 실패 · 핸드폰의 전송 창을 확인하세요',
+    "Couldn't delete · check the phone",
+    '削除失敗 · スマホの画面を確認',
+    '删除失败 · 请检查手机',
+  ],
   'wifi_page_footer': [
-    '폰에서 와이파이 전송 창이 열려 있는 동안만 보낼 수 있어요.',
+    '핸드폰에서 와이파이 전송 창이 열려 있는 동안만 보낼 수 있어요.',
     'Sending works only while the Wi-Fi Transfer window is open on the phone.',
     'スマホでWi-Fi転送画面が開いている間だけ送信できます。',
     '仅在手机上的Wi-Fi传输窗口打开时才能发送。',
   ],
   'wifi_page_sent': ['전송 완료!', 'Sent!', '送信完了！', '发送完成！'],
   'wifi_page_check_phone': [
-    '폰 화면에서 확인해 주세요.',
+    '핸드폰 화면에서 확인해 주세요.',
     'Check the phone screen.',
     'スマホの画面で確認してください。',
     '请在手机屏幕上确认。',

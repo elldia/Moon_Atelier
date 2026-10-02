@@ -13,10 +13,11 @@ class WifiTransferPickedFile {
 }
 
 class WifiTransferServer {
-  Future<String?> start() =>
-      throw UnsupportedError('Wi-Fi transfer is not supported on the web build.');
+  Future<String?> start() => throw UnsupportedError(
+    'Wi-Fi transfer is not supported on the web build.',
+  );
 
-  Stream<WifiTransferPickedFile> get received =>
+  Stream<List<WifiTransferPickedFile>> get files =>
       throw UnsupportedError('web stub');
 
   Future<void> stop() => throw UnsupportedError('web stub');

@@ -29,8 +29,8 @@ class _WifiTransferDialog extends StatefulWidget {
 
 class _WifiTransferDialogState extends State<_WifiTransferDialog> {
   final _server = WifiTransferServer();
-  final _files = <WifiTransferPickedFile>[];
-  StreamSubscription<WifiTransferPickedFile>? _subscription;
+  var _files = <WifiTransferPickedFile>[];
+  StreamSubscription<List<WifiTransferPickedFile>>? _subscription;
   String? _address;
   String? _error;
 
@@ -55,8 +55,10 @@ class _WifiTransferDialogState extends State<_WifiTransferDialog> {
         return;
       }
       setState(() => _address = address);
-      _subscription = _server.received.listen((file) {
-        if (mounted) setState(() => _files.add(file));
+      // A snapshot of everything held so far, re-sent on every upload and on
+      // every delete from the sender's page.
+      _subscription = _server.files.listen((files) {
+        if (mounted) setState(() => _files = files);
       });
     } catch (e) {
       if (!mounted) return;

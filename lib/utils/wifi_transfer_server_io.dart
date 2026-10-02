@@ -21,19 +21,22 @@ class WifiTransferPickedFile {
 }
 
 /// A short-lived local HTTP server that shows a drag-and-drop upload page
-/// and emits each uploaded file on [received] for as long as it's running,
-/// so several files can be sent in one session. The address is just
-/// `ip:port` -- no path -- so it's short enough to type by hand; the
-/// tradeoff is that anyone else on the same LAN who guesses the port during
-/// the brief window this is open could also reach the upload form (there's
-/// no other secret in the URL to stop them).
+/// and keeps every file uploaded while it's running, so several files can be
+/// sent in one session. Each upload gets an id the page can later use to
+/// delete that file again. The address is just `ip:port` -- no path -- so
+/// it's short enough to type by hand; the tradeoff is that anyone else on
+/// the same LAN who guesses the port during the brief window this is open
+/// could also reach the upload form (there's no other secret in the URL to
+/// stop them).
 class WifiTransferServer {
   HttpServer? _server;
-  final _received = StreamController<WifiTransferPickedFile>();
+  final _files = <int, WifiTransferPickedFile>{};
+  var _nextId = 0;
+  final _changes = StreamController<List<WifiTransferPickedFile>>();
 
-  /// Every file uploaded while the server is up, in arrival order. Closes
-  /// when [stop] is called.
-  Stream<WifiTransferPickedFile> get received => _received.stream;
+  /// The files currently held, in arrival order, re-emitted whenever one is
+  /// uploaded or deleted from the page. Closes when [stop] is called.
+  Stream<List<WifiTransferPickedFile>> get files => _changes.stream;
 
   /// Starts the server and returns the URL to open on the sending device,
   /// or null if no local network address could be found (e.g. no Wi-Fi).
@@ -44,6 +47,10 @@ class WifiTransferServer {
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, 0);
     _server = server;
     return 'http://$ip:${server.port}';
+  }
+
+  void _emit() {
+    if (!_changes.isClosed) _changes.add(List.unmodifiable(_files.values));
   }
 
   Future<Response> _handleRequest(Request request) async {
@@ -61,22 +68,44 @@ class WifiTransferServer {
       if (form == null) {
         return Response(400, body: 'Not a multipart form');
       }
-      var count = 0;
-      await for (final field in form.formData) {
-        final filename = field.filename;
-        if (filename == null || filename.isEmpty) continue;
-        final bytes = await field.part.readBytes();
-        if (_received.isClosed) return Response(503, body: 'Closed');
-        _received.add(WifiTransferPickedFile(name: filename, bytes: bytes));
-        count++;
+      final ids = <int>[];
+      try {
+        await for (final field in form.formData) {
+          final filename = field.filename;
+          if (filename == null || filename.isEmpty) continue;
+          final bytes = await field.part.readBytes();
+          if (_changes.isClosed) return Response(503, body: 'Closed');
+          final id = _nextId++;
+          _files[id] = WifiTransferPickedFile(name: filename, bytes: bytes);
+          ids.add(id);
+          _emit();
+        }
+      } catch (_) {
+        // The sender cancelled (or lost) the upload partway through; the
+        // unfinished file was never stored, so there's nothing to undo.
+        return Response(400, body: 'Upload interrupted');
       }
-      if (count == 0) return Response(400, body: 'No file field found');
-      // The page's script only looks at the status code; this body is for
-      // the no-JavaScript fallback, where the form posts here directly.
+      if (ids.isEmpty) return Response(400, body: 'No file field found');
+      // The page's script reads the id from this header so it can delete
+      // the file later; the body is for the no-JavaScript fallback, where
+      // the form posts here directly.
       return Response.ok(
         _successPageHtml(),
-        headers: {'content-type': 'text/html; charset=utf-8'},
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'x-file-id': ids.join(','),
+        },
       );
+    }
+    if (request.method == 'DELETE' &&
+        segments.length == 2 &&
+        segments.first == 'upload') {
+      final id = int.tryParse(segments.last);
+      if (id == null || _files.remove(id) == null) {
+        return Response.notFound('Not found');
+      }
+      _emit();
+      return Response.ok('Deleted');
     }
     return Response.notFound('Not found');
   }
@@ -84,7 +113,7 @@ class WifiTransferServer {
   Future<void> stop() async {
     await _server?.close(force: true);
     _server = null;
-    if (!_received.isClosed) await _received.close();
+    if (!_changes.isClosed) await _changes.close();
   }
 }
 
@@ -141,6 +170,7 @@ String _uploadPageHtml() {
     'done': tr('wifi_page_status_done'),
     'failed': tr('wifi_page_status_failed'),
     'summary': tr('wifi_page_summary'),
+    'deleteFailed': tr('wifi_page_delete_failed'),
   });
   return '''
 <!DOCTYPE html>
@@ -179,6 +209,13 @@ li { padding: 12px 0; border-top: 1px solid var(--line); }
 .name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .size { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .state { flex: none; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.act {
+  flex: none; width: 30px; height: 30px; margin-right: -6px; border: 0; border-radius: 8px;
+  display: grid; place-items: center; background: none; color: var(--muted); cursor: pointer;
+}
+.act:hover { background: var(--track); color: var(--err); }
+.act:disabled { opacity: .4; cursor: default; background: none; color: var(--muted); }
+.act svg { width: 18px; height: 18px; }
 li.done .state { color: var(--ok); font-weight: 600; }
 li.failed .state { color: var(--err); font-weight: 600; }
 .bar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 10px; overflow: hidden; }
@@ -212,11 +249,15 @@ li.done .bar, li.failed .bar { display: none; }
 </main>
 <script>
 const T = $strings;
+const ICON_CANCEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+const LABEL_CANCEL = ${jsonEncode(tr('cancel'))};
+const LABEL_DELETE = ${jsonEncode(tr('delete'))};
 const drop = document.getElementById('drop');
 const picker = document.getElementById('picker');
 const list = document.getElementById('list');
 const queue = [];
-let busy = false, total = 0, done = 0;
+let current = null, total = 0, done = 0;
 
 function fmtSize(n) {
   if (n < 1024) return n + ' B';
@@ -229,33 +270,71 @@ function updateSummary() {
   document.getElementById('summary').textContent = total
     ? T.summary.replace('{done}', done).replace('{total}', total) : '';
 }
+function setAction(item, icon, label) {
+  item.act.innerHTML = icon;
+  item.act.title = label;
+  item.act.setAttribute('aria-label', label);
+}
+// Drops a row from the page: waiting rows leave the queue, the uploading
+// row is aborted mid-transfer, and finished rows have already been removed
+// from the phone by the caller.
+function removeItem(item) {
+  const i = queue.indexOf(item);
+  if (i >= 0) queue.splice(i, 1);
+  if (item === current) { item.xhr.abort(); current = null; }
+  if (item.li.classList.contains('done')) done--;
+  total--;
+  item.li.remove();
+  updateSummary();
+  next();
+}
+function deleteItem(item) {
+  item.act.disabled = true;
+  const xhr = new XMLHttpRequest();
+  xhr.open('DELETE', 'upload/' + item.id);
+  xhr.onload = () => {
+    if (xhr.status === 200) return removeItem(item);
+    item.act.disabled = false;
+    item.state.textContent = T.deleteFailed;
+  };
+  xhr.onerror = () => { item.act.disabled = false; item.state.textContent = T.deleteFailed; };
+  xhr.send();
+}
 function add(files) {
   for (const file of files) {
     const li = document.createElement('li');
     const dot = file.name.lastIndexOf('.');
     li.innerHTML = '<div class="row"><div class="icon"></div><div class="meta">' +
-      '<div class="name"></div><div class="size"></div></div><div class="state"></div></div>' +
-      '<div class="bar"><i></i></div>';
+      '<div class="name"></div><div class="size"></div></div><div class="state"></div>' +
+      '<button type="button" class="act"></button></div><div class="bar"><i></i></div>';
     li.querySelector('.icon').textContent = dot > 0 ? file.name.slice(dot + 1, dot + 5) : 'FILE';
     li.querySelector('.name').textContent = file.name;
     li.querySelector('.size').textContent = fmtSize(file.size);
-    li.querySelector('.state').textContent = T.waiting;
+    const item = {
+      file, li, id: null, xhr: null,
+      state: li.querySelector('.state'),
+      act: li.querySelector('.act'),
+    };
+    item.state.textContent = T.waiting;
+    setAction(item, ICON_CANCEL, LABEL_CANCEL);
+    item.act.addEventListener('click', () => {
+      if (item.id !== null) deleteItem(item); else removeItem(item);
+    });
     list.appendChild(li);
-    queue.push({ file, li });
+    queue.push(item);
     total++;
   }
   updateSummary();
   next();
 }
 function next() {
-  if (busy || !queue.length) return;
-  busy = true;
-  const { file, li } = queue.shift();
-  const state = li.querySelector('.state');
+  if (current || !queue.length) return;
+  const item = current = queue.shift();
+  const { file, li, state } = item;
   const bar = li.querySelector('.bar i');
   const body = new FormData();
   body.append('file', file, file.name);
-  const xhr = new XMLHttpRequest();
+  const xhr = item.xhr = new XMLHttpRequest();
   xhr.open('POST', 'upload');
   xhr.upload.onprogress = (e) => {
     if (!e.lengthComputable) return;
@@ -266,9 +345,13 @@ function next() {
   const finish = (ok) => {
     li.classList.add(ok ? 'done' : 'failed');
     state.textContent = ok ? '✓ ' + T.done : T.failed;
-    if (ok) done++;
+    if (ok) {
+      done++;
+      item.id = xhr.getResponseHeader('X-File-Id');
+      setAction(item, ICON_DELETE, LABEL_DELETE);
+    }
     updateSummary();
-    busy = false;
+    current = null;
     next();
   };
   xhr.onload = () => finish(xhr.status === 200);
