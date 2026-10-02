@@ -197,7 +197,7 @@ class ReadingSettings {
     fontSize: 16,
     letterSpacing: 0,
     lineHeight: 1.5,
-    pageMargin: 16,
+    pageMargin: 24,
     paragraphIndent: 0,
     backgroundKey: 'white',
     themeMode: ThemeMode.system,
