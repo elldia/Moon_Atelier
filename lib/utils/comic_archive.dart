@@ -29,6 +29,14 @@ bool looksLikeComicArchive(Uint8List bytes) {
 class ComicArchive {
   final List<ArchiveFile> _pages;
 
+  // `archive` caches each entry's decompressed data, but `content` wraps it
+  // in a brand-new Uint8List view on every call — and Flutter's image cache
+  // keys a MemoryImage by the identity of its bytes, so a fresh view per
+  // call meant precached pages were never reused and every page was
+  // decoded again whenever it was shown. Handing back the same view each
+  // time fixes that; it shares the archive's buffer, so it costs no memory.
+  final _bytes = <int, Uint8List>{};
+
   ComicArchive._(this._pages);
 
   factory ComicArchive.fromBytes(Uint8List bytes) {
@@ -40,7 +48,7 @@ class ComicArchive {
 
   int get pageCount => _pages.length;
 
-  Uint8List pageBytes(int index) => _pages[index].content;
+  Uint8List pageBytes(int index) => _bytes[index] ??= _pages[index].content;
 }
 
 final _tokenPattern = RegExp(r'\d+|\D+');

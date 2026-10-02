@@ -18,6 +18,24 @@ import 'saved_items_screen.dart';
 
 const _uuid = Uuid();
 
+/// The 0-based page indices worth decoding ahead of time around [current]
+/// (the current page, or the first page of the current spread): the four
+/// pages after the current view and the one view before it — reading
+/// mostly goes forward, so the lookahead is weighted that way. A spread
+/// shows two pages, so "after" starts two pages on in [twoPage] mode.
+@visibleForTesting
+List<int> comicPrecacheIndices(
+  int current,
+  int count, {
+  required bool twoPage,
+}) {
+  final step = twoPage ? 2 : 1;
+  return [
+    for (var i = current + step; i < current + step + 4; i++) i,
+    for (var i = current - step; i < current; i++) i,
+  ].where((i) => i >= 0 && i < count).toList();
+}
+
 /// A comic archive viewer supporting two view modes — single page and
 /// two-page spread (pages meeting center-aligned like a real book) — each
 /// readable left-to-right or right-to-left — mirroring [PdfViewerScreen]'s
@@ -94,11 +112,12 @@ class _ComicViewerScreenState extends State<ComicViewerScreen> {
     if (archive == null || !mounted) {
       return;
     }
-    final count = archive.pageCount;
-    final current = _page - 1;
     final cacheWidth = _decodeCacheWidth();
-    for (final idx in [current - 2, current - 1, current + 1, current + 2]) {
-      if (idx < 0 || idx >= count) continue;
+    for (final idx in comicPrecacheIndices(
+      _page - 1,
+      archive.pageCount,
+      twoPage: _mode == ComicViewMode.twoPage,
+    )) {
       final ImageProvider provider = cacheWidth == null
           ? MemoryImage(archive.pageBytes(idx))
           : ResizeImage(MemoryImage(archive.pageBytes(idx)), width: cacheWidth);
