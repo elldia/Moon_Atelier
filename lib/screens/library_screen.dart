@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -1621,8 +1622,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               : Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const CoffeeButton(),
-                    const SizedBox(width: 12),
+                    // The coffee (donation) button is web-only; the native
+                    // apps leave it out entirely.
+                    if (kIsWeb) ...[
+                      const CoffeeButton(),
+                      const SizedBox(width: 12),
+                    ],
                     FloatingActionButton(
                       key: _addKey,
                       tooltip: tr('add'),
