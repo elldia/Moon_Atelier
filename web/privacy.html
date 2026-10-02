@@ -75,7 +75,7 @@
   <main>
     <div class="lang-block">
       <h1>개인정보처리방침</h1>
-      <p class="updated">Moon Atelier (달빛서재) · 최종 수정일: 2026-09-22</p>
+      <p class="updated">Moon Atelier (달빛서재) · 최종 수정일: 2026-10-02</p>
 
       <section>
         <h2>개요</h2>
@@ -90,7 +90,7 @@
       <section>
         <h2>선택적 외부 연동</h2>
         <ul>
-          <li><strong>Dropbox / OneDrive</strong>: 파일 가져오기 기능은 각 서비스가 제공하는 공식 피커(Chooser)를 통해 사용자의 기기와 해당 서비스가 직접 통신합니다. 로그인 정보나 접근 토큰은 앱이나 개발자를 거치지 않습니다.</li>
+          <li><strong>Dropbox / OneDrive</strong>: 파일을 가져오려면 각 서비스의 공식 로그인 페이지에서 로그인하고 앱에 <em>파일 읽기</em> 권한을 허락합니다. 비밀번호는 해당 서비스의 페이지에만 입력되며 앱은 볼 수 없습니다. 앱은 허락받은 임시 접근 토큰으로 파일 목록을 보여주고 사용자가 고른 파일을 내려받는 데에만 사용하며, 토큰을 기기에 저장하지 않고 개발자를 포함한 어떤 서버로도 보내지 않습니다(앱을 닫으면 사라집니다). 웹 버전의 Dropbox는 Dropbox가 제공하는 공식 선택 창(Chooser)을 사용합니다. 각 서비스에서의 처리는 해당 서비스의 개인정보처리방침을 따릅니다.</li>
           <li><strong>FTP 서버 / 같은 Wi-Fi 기기 간 전송</strong>: 사용자가 직접 주소를 입력하거나 같은 네트워크의 다른 기기와 연결하는 기능으로, 개발자가 운영하는 서버는 관여하지 않습니다.</li>
         </ul>
         <p>이 기능들은 모두 사용자가 직접 실행해야만 동작하며, 자동으로 실행되지 않습니다.</p>
@@ -108,12 +108,22 @@
 
       <section>
         <h2>외부 링크</h2>
-        <p>개발자 후원(Buy Me a Coffee), Windows용 프로그램 다운로드(GitHub Releases) 등 일부 버튼은 누르면 외부 웹사이트로 이동합니다. 그 사이트에서는 해당 사이트 자체의 개인정보처리방침이 적용됩니다.</p>
+        <p>개발자 후원(Buy Me a Coffee, 웹 버전만), Windows용 프로그램 다운로드(GitHub Releases) 등 일부 버튼은 누르면 외부 웹사이트로 이동합니다. 그 사이트에서는 해당 사이트 자체의 개인정보처리방침이 적용됩니다.</p>
       </section>
 
       <section>
         <h2>권한(안드로이드)</h2>
-        <p>인터넷 권한은 위에서 설명한 선택적 연동 기능(Dropbox/OneDrive/FTP)과 악보(MusicXML) 렌더링에만 사용되며, 앱이 자체적으로 개인 데이터를 어디로도 전송하지 않습니다.</p>
+        <p>인터넷 권한은 위에서 설명한 선택적 연동 기능(Dropbox/OneDrive/FTP/같은 Wi-Fi 기기 간 전송), 아래의 외부 리소스 내려받기에만 사용되며, 앱이 자체적으로 개인 데이터를 어디로도 전송하지 않습니다.</p>
+      </section>
+
+      <section>
+        <h2>외부 리소스</h2>
+        <p>일부 기능은 필요할 때 외부 서버에서 공개 리소스를 내려받습니다. 이때 다른 웹사이트에 접속할 때와 마찬가지로 기기의 IP 주소 등 기본적인 접속 정보가 해당 서버에 전달될 수 있습니다. 책 내용이나 사용자가 추가한 파일은 전송되지 않습니다.</p>
+        <ul>
+          <li><strong>Google Fonts</strong>: 읽기 설정에서 일부 글꼴(노토 산스, 나눔고딕 등)을 고르면 Google Fonts 서버에서 글꼴 파일을 내려받습니다.</li>
+          <li><strong>jsDelivr(CDN)</strong>: 악보(MusicXML) 표시 엔진을, 웹 버전에서는 PDF 표시 엔진(pdf.js)도 이 서버에서 불러옵니다.</li>
+          <li><strong>Dropbox</strong>: 웹 버전은 Dropbox 선택 창 스크립트를 Dropbox 서버에서 불러옵니다.</li>
+        </ul>
       </section>
 
       <section>
@@ -134,7 +144,7 @@
 
     <div class="lang-block">
       <h1>Privacy Policy</h1>
-      <p class="updated">Moon Atelier (달빛서재) · Last updated: 2026-09-22</p>
+      <p class="updated">Moon Atelier (달빛서재) · Last updated: 2026-10-02</p>
 
       <section>
         <h2>Overview</h2>
@@ -149,7 +159,7 @@
       <section>
         <h2>Optional third-party integrations</h2>
         <ul>
-          <li><strong>Dropbox / OneDrive</strong>: the file-import feature uses each service's own official picker widget, which connects your device directly to that service. Your login credentials or access tokens never pass through this app or the developer.</li>
+          <li><strong>Dropbox / OneDrive</strong>: to import a file, you sign in on that service's own official sign-in page and allow the app to <em>read your files</em>. Your password is entered only on the service's page; the app never sees it. The app uses the temporary access token you grant only to list your files and download the one you pick — it never saves the token on your device or sends it to any server, the developer's included, and it's gone once the app is closed. On the web version, Dropbox import uses Dropbox's own official Chooser. Each service's own privacy policy applies to what happens on its side.</li>
           <li><strong>FTP servers / Wi-Fi transfer between your own devices</strong>: you enter the server address yourself, or connect to another device on the same network — no server run by the developer is involved.</li>
         </ul>
         <p>All of these only run when you explicitly start them; none of them run automatically.</p>
@@ -167,12 +177,22 @@
 
       <section>
         <h2>External links</h2>
-        <p>A few buttons — "Buy Me a Coffee" and the Windows-app download (GitHub Releases) — open an external website when tapped. That site's own privacy policy applies once you leave the app.</p>
+        <p>A few buttons — "Buy Me a Coffee" (web version only) and the Windows-app download (GitHub Releases) — open an external website when tapped. That site's own privacy policy applies once you leave the app.</p>
       </section>
 
       <section>
         <h2>Permissions (Android)</h2>
-        <p>The Internet permission is used only for the optional integrations above (Dropbox/OneDrive/FTP) and for rendering MusicXML sheet music — the app never uses it to send personal data anywhere on its own.</p>
+        <p>The Internet permission is used only for the optional integrations above (Dropbox/OneDrive/FTP/Wi-Fi transfer) and for downloading the external resources below — the app never uses it to send personal data anywhere on its own.</p>
+      </section>
+
+      <section>
+        <h2>External resources</h2>
+        <p>Some features download public resources from outside servers when needed. As with visiting any website, basic connection details such as your device's IP address may reach those servers. Book contents and files you add are never sent.</p>
+        <ul>
+          <li><strong>Google Fonts</strong>: choosing certain reading fonts (e.g. Noto Sans, Nanum Gothic) downloads the font files from Google Fonts' servers.</li>
+          <li><strong>jsDelivr (CDN)</strong>: the MusicXML sheet-music engine is loaded from it, and on the web version the PDF engine (pdf.js) as well.</li>
+          <li><strong>Dropbox</strong>: the web version loads the Dropbox Chooser script from Dropbox's servers.</li>
+        </ul>
       </section>
 
       <section>
