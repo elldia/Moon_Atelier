@@ -7,9 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../data/comic_settings_controller.dart';
 import '../data/folder_store.dart';
 import '../data/library_store.dart';
 import '../models/book.dart';
+import '../models/comic_settings.dart';
 import '../models/folder.dart';
 import '../data/reading_settings_controller.dart';
 import '../l10n/strings.dart';
@@ -35,6 +37,8 @@ import '../widgets/onboarding_overlay.dart';
 import '../widgets/comic_settings_sheet.dart';
 import '../widgets/reading_settings_sheet.dart';
 import '../utils/comic_archive.dart';
+import '../utils/comic_cover_cache.dart';
+import '../widgets/comic_cover_grid.dart';
 import 'comic_viewer_screen.dart';
 import 'epub_viewer_screen.dart';
 import 'music_score_viewer_screen.dart';
@@ -94,6 +98,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final _settingsKey = GlobalKey();
 
   bool get _isComic => widget.kind == BookKind.comic;
+
+  /// Cover thumbnails for the comic library's cover grid; null in the
+  /// e-book library.
+  late final ComicCoverCache? _covers = _isComic
+      ? (ComicCoverCache()..addListener(_onCoverArrived))
+      : null;
+
+  void _onCoverArrived() {
+    if (mounted) setState(() {});
+  }
 
   /// Only this library's own folders — e-book and comic folders are kept
   /// apart (see [Folder.kind]).
@@ -191,6 +205,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _covers?.dispose();
     super.dispose();
   }
 
@@ -556,6 +571,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           : null,
     );
     await LibraryStore.add(book, bytes);
+    if (format == BookFormat.comic) {
+      unawaited(_covers?.createFrom(book.id, bytes));
+    }
     if (!mounted) return;
     setState(() => _books = [book, ..._books]);
     if (open) unawaited(_openBook(book, bytes: bytes));
@@ -849,6 +867,70 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return true;
   }
 
+  /// A book's ⋮ menu, shared by the name list and the comic cover grid.
+  List<PopupMenuEntry<String>> _bookMenu(Book book) => [
+    if (book.format == BookFormat.note)
+      PopupMenuItem(value: 'edit', child: Text(tr('note_edit'))),
+    PopupMenuItem(value: 'rename', child: Text(tr('rename'))),
+    PopupMenuItem(value: 'move', child: Text(tr('move_to_folder'))),
+    PopupMenuItem(value: 'delete', child: Text(tr('delete'))),
+  ];
+
+  void _onBookAction(Book book, String action) {
+    if (action == 'edit') _editNote(book);
+    if (action == 'rename') _renameBook(book);
+    if (action == 'move') _moveBookToFolder(book);
+    if (action == 'delete') _deleteBook(book);
+  }
+
+  void _toggleBookSelected(Book book) => setState(() {
+    if (!_selectedBookIds.remove(book.id)) _selectedBookIds.add(book.id);
+  });
+
+  void _toggleFolderSelected(Folder folder) => setState(() {
+    if (!_selectedFolderIds.remove(folder.id)) {
+      _selectedFolderIds.add(folder.id);
+    }
+  });
+
+  bool get _showCovers =>
+      _isComic &&
+      ComicSettingsController.instance.value.libraryView ==
+          ComicLibraryView.covers;
+
+  void _toggleLibraryView() {
+    ComicSettingsController.instance.update(
+      (s) => s.copyWith(
+        libraryView: s.libraryView == ComicLibraryView.covers
+            ? ComicLibraryView.names
+            : ComicLibraryView.covers,
+      ),
+    );
+  }
+
+  Widget _buildCoverGrid(List<Folder> folders, List<Book> books) {
+    return ComicCoverGrid(
+      folders: folders,
+      books: books,
+      folderCounts: {
+        for (final f in folders)
+          f.id: _books.where((b) => b.folderId == f.id).length,
+      },
+      selectionMode: _selectionMode,
+      selectedFolderIds: _selectedFolderIds,
+      selectedBookIds: _selectedBookIds,
+      coverFor: (id) => _covers!.coverFor(id),
+      requestCover: (id) => _covers!.request(id),
+      onFolderTap: (f) => _selectionMode
+          ? _toggleFolderSelected(f)
+          : setState(() => _currentFolderId = f.id),
+      onDeleteFolder: _deleteFolder,
+      onBookTap: (b) => _selectionMode ? _toggleBookSelected(b) : _openBook(b),
+      bookMenu: _bookMenu,
+      onBookAction: _onBookAction,
+    );
+  }
+
   Future<void> _updateBook(Book updated) async {
     await LibraryStore.save(updated);
     if (!mounted) return;
@@ -883,6 +965,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (confirmed != true) return false;
 
     await LibraryStore.delete(book.id);
+    unawaited(_covers?.forget(book.id));
     if (!mounted) return true;
     setState(() => _books = _books.where((b) => b.id != book.id).toList());
     return true;
@@ -930,6 +1013,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     for (final id in _selectedBookIds) {
       await LibraryStore.delete(id);
+      unawaited(_covers?.forget(id));
     }
     for (final id in _selectedFolderIds) {
       final affected = _books.where((b) => b.folderId == id).toList();
@@ -963,9 +1047,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final content = bytes ?? await LibraryStore.loadBytes(book.id);
     if (!mounted) return;
     if (content == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('book_content_missing'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('book_content_missing'))));
       return;
     }
     final opened = book.copyWith(lastOpenedAt: DateTime.now());
@@ -1360,6 +1443,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           key: _sortKey,
           onSelected: (v) {
             if (v == 'sort') _pickSort();
+            if (v == 'view') _toggleLibraryView();
             if (v == 'trash') _toggleSelectionMode();
             if (v == 'settings') {
               _isComic
@@ -1372,6 +1456,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
           },
           itemBuilder: (context) => [
             PopupMenuItem(value: 'sort', child: Text(tr('sort'))),
+            if (_isComic)
+              PopupMenuItem(
+                value: 'view',
+                child: Text(
+                  _showCovers
+                      ? tr('comic_view_names')
+                      : tr('comic_view_covers'),
+                ),
+              ),
             PopupMenuItem(value: 'trash', child: Text(tr('select_delete'))),
             PopupMenuItem(
               value: 'settings',
@@ -1396,6 +1489,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
         icon: const Icon(Icons.sort),
         onPressed: _pickSort,
       ),
+      if (_isComic)
+        IconButton(
+          tooltip: _showCovers
+              ? tr('comic_view_names')
+              : tr('comic_view_covers'),
+          icon: Icon(_showCovers ? Icons.view_list : Icons.grid_view),
+          onPressed: _toggleLibraryView,
+        ),
       IconButton(
         key: _trashKey,
         tooltip: tr('select_delete'),
@@ -1440,7 +1541,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final narrow = width < 480;
 
     return AnimatedBuilder(
-      animation: ReadingSettingsController.instance,
+      animation: Listenable.merge([
+        ReadingSettingsController.instance,
+        ComicSettingsController.instance,
+      ]),
       builder: (context, _) {
         final settings = ReadingSettingsController.instance.value;
         final appName = settings.appName;
@@ -1517,6 +1621,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ],
                   ),
                 )
+              : _showCovers
+              ? _buildCoverGrid(visibleFolders, visibleBooks)
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
                   itemCount: visibleFolders.length + visibleBooks.length,
@@ -1605,33 +1711,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         trailing: _selectionMode
                             ? null
                             : PopupMenuButton<String>(
-                                onSelected: (action) {
-                                  if (action == 'edit') _editNote(book);
-                                  if (action == 'rename') _renameBook(book);
-                                  if (action == 'move') {
-                                    _moveBookToFolder(book);
-                                  }
-                                  if (action == 'delete') _deleteBook(book);
-                                },
-                                itemBuilder: (context) => [
-                                  if (book.format == BookFormat.note)
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text(tr('note_edit')),
-                                    ),
-                                  PopupMenuItem(
-                                    value: 'rename',
-                                    child: Text(tr('rename')),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'move',
-                                    child: Text(tr('move_to_folder')),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text(tr('delete')),
-                                  ),
-                                ],
+                                onSelected: (action) =>
+                                    _onBookAction(book, action),
+                                itemBuilder: (context) => _bookMenu(book),
                               ),
                       ),
                     );

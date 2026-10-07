@@ -7,6 +7,7 @@ import 'package:hive/hive.dart';
 import 'package:ebk/data/bookmark_store.dart';
 import 'package:ebk/data/comic_settings_controller.dart';
 import 'package:ebk/data/comic_settings_store.dart';
+import 'package:ebk/data/cover_store.dart';
 import 'package:ebk/data/folder_store.dart';
 import 'package:ebk/data/highlight_store.dart';
 import 'package:ebk/data/library_store.dart';
@@ -33,6 +34,7 @@ void main() {
     await BookmarkStore.init();
     await HighlightStore.init();
     await FolderStore.init();
+    await CoverStore.init();
     await OnboardingStore.init();
     await MarkdownHelpStore.init();
   });

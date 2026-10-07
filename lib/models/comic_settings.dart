@@ -17,6 +17,10 @@ enum ComicDirection { horizontal, vertical }
 /// which way is "forward".
 enum ComicReadingDirection { ltr, rtl }
 
+/// How the comic library lists its comics: a grid of cover thumbnails, or
+/// the plain list of names.
+enum ComicLibraryView { covers, names }
+
 /// How page images are filtered when Flutter scales them to fit the
 /// screen — a tradeoff between crisp pixels and smoothed edges.
 enum ComicImageQuality { sharp, medium, smooth }
@@ -60,6 +64,9 @@ class ComicSettings {
   /// pages or fewer) is shown in the comic viewer. On by default.
   final bool showProgressBar;
 
+  /// How the comic library lists comics; covers by default.
+  final ComicLibraryView libraryView;
+
   const ComicSettings({
     required this.viewMode,
     required this.readingDirection,
@@ -69,6 +76,7 @@ class ComicSettings {
     required this.tapZoneFraction,
     required this.backgroundKey,
     required this.showProgressBar,
+    this.libraryView = ComicLibraryView.covers,
   });
 
   static const defaults = ComicSettings(
@@ -80,6 +88,7 @@ class ComicSettings {
     tapZoneFraction: 0.3,
     backgroundKey: 'black',
     showProgressBar: true,
+    libraryView: ComicLibraryView.covers,
   );
 
   ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
@@ -93,6 +102,7 @@ class ComicSettings {
     double? tapZoneFraction,
     String? backgroundKey,
     bool? showProgressBar,
+    ComicLibraryView? libraryView,
   }) {
     return ComicSettings(
       viewMode: viewMode ?? this.viewMode,
@@ -103,6 +113,7 @@ class ComicSettings {
       tapZoneFraction: tapZoneFraction ?? this.tapZoneFraction,
       backgroundKey: backgroundKey ?? this.backgroundKey,
       showProgressBar: showProgressBar ?? this.showProgressBar,
+      libraryView: libraryView ?? this.libraryView,
     );
   }
 
@@ -115,6 +126,7 @@ class ComicSettings {
     'tapZoneFraction': tapZoneFraction,
     'backgroundKey': backgroundKey,
     'showProgressBar': showProgressBar,
+    'libraryView': libraryView.name,
   };
 
   factory ComicSettings.fromMap(Map raw) => ComicSettings(
@@ -141,5 +153,9 @@ class ComicSettings {
     ),
     backgroundKey: raw['backgroundKey'] as String? ?? 'black',
     showProgressBar: raw['showProgressBar'] as bool? ?? true,
+    libraryView: ComicLibraryView.values.firstWhere(
+      (v) => v.name == raw['libraryView'],
+      orElse: () => ComicLibraryView.covers,
+    ),
   );
 }

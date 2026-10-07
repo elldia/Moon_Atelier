@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'data/bookmark_store.dart';
 import 'data/comic_settings_controller.dart';
 import 'data/comic_settings_store.dart';
+import 'data/cover_store.dart';
 import 'data/folder_store.dart';
 import 'data/highlight_store.dart';
 import 'data/library_store.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
   await BookmarkStore.init();
   await HighlightStore.init();
   await FolderStore.init();
+  await CoverStore.init();
   await FolderStore.assignLegacyKinds();
   await OnboardingStore.init();
   await MarkdownHelpStore.init();
