@@ -53,10 +53,10 @@ void main() {
     // this test actually cares about.
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('이북 리더'));
+    await tester.tap(find.text('E-book Reader'));
     await tester.pumpAndSettle();
 
-    expect(find.text('아직 추가된 파일이 없습니다.'), findsOneWidget);
+    expect(find.text('No files added yet.'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 }

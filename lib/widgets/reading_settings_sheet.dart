@@ -180,7 +180,7 @@ class _ReadingSettingsDialogState extends State<_ReadingSettingsDialog> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     TextButton(
-                      onPressed: () => _set((_) => ReadingSettings.defaults),
+                      onPressed: () => _set((s) => s.resetReadingSettings()),
                       child: Text(tr('reset_defaults')),
                     ),
                   ],

@@ -87,5 +87,30 @@ void main() {
       expect(restored.tapZoneFraction, 0.3);
       expect(restored.animatePageTurns, false);
     });
+
+    test('the interface defaults to English, including old saves', () {
+      expect(ReadingSettings.defaults.locale, AppLocale.en);
+      final legacyMap = ReadingSettings.defaults.toMap()..remove('locale');
+      expect(ReadingSettings.fromMap(legacyMap).locale, AppLocale.en);
+    });
+
+    test('a saved language is kept', () {
+      final korean = ReadingSettings.defaults.copyWith(locale: AppLocale.ko);
+      expect(ReadingSettings.fromMap(korean.toMap()).locale, AppLocale.ko);
+    });
+
+    test('resetting keeps the chosen language and app name', () {
+      final mine = ReadingSettings.defaults.copyWith(
+        locale: AppLocale.ko,
+        appName: AppBrand.moonlightLibrary,
+        fontSize: 24,
+        readingMode: ReadingMode.page,
+      );
+      final reset = mine.resetReadingSettings();
+      expect(reset.locale, AppLocale.ko);
+      expect(reset.appName, AppBrand.moonlightLibrary);
+      expect(reset.fontSize, ReadingSettings.defaults.fontSize);
+      expect(reset.readingMode, ReadingSettings.defaults.readingMode);
+    });
   });
 }

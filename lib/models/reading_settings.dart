@@ -202,7 +202,7 @@ class ReadingSettings {
     backgroundKey: 'white',
     themeMode: ThemeMode.system,
     showProgress: false,
-    locale: AppLocale.ko,
+    locale: AppLocale.en,
     appName: AppBrand.moonAtelier,
     showFormatIcon: true,
     ttsVoiceUri: null,
@@ -214,6 +214,12 @@ class ReadingSettings {
   );
 
   ReadingBackground get background => ReadingBackground.byKey(backgroundKey);
+
+  /// The settings dialog's 기본값으로 (reset): every reading setting back to
+  /// [defaults], but the interface language and app name stay as chosen —
+  /// a reset never switches the UI to another language.
+  ReadingSettings resetReadingSettings() =>
+      defaults.copyWith(locale: locale, appName: appName);
 
   /// Base text style for reading content: [font]/[fontWeight] with this
   /// settings' size, spacing, line height, and background-derived color.
@@ -312,7 +318,7 @@ class ReadingSettings {
     showProgress: raw['showProgress'] as bool? ?? false,
     locale: AppLocale.values.firstWhere(
       (l) => l.name == raw['locale'],
-      orElse: () => AppLocale.ko,
+      orElse: () => AppLocale.en,
     ),
     appName: AppBrand.values.firstWhere(
       (a) => a.name == raw['appName'],
